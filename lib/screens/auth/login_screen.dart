@@ -35,137 +35,145 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthBackground(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 56),
-            _buildLogo(),
-            const SizedBox(height: 36),
-            GlassCard(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Đăng nhập',
-                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 24),
-                    GlassInput(
-                      label: 'Email / SĐT / Tên đăng nhập',
-                      hint: 'Nhập thông tin đăng nhập',
-                      prefixIcon: LucideIcons.user,
-                      controller: _identifierController,
-                      validator: (v) => v?.isEmpty == true ? 'Vui lòng nhập thông tin' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    GlassInput(
-                      label: 'Mật khẩu',
-                      hint: '••••••••',
-                      prefixIcon: LucideIcons.lock,
-                      obscureText: true,
-                      controller: _passwordController,
-                      validator: (v) => v?.isEmpty == true ? 'Vui lòng nhập mật khẩu' : null,
-                    ),
-                    const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        ),
-                        child: const Text(
-                          'Quên mật khẩu?',
-                          style: TextStyle(color: Color(0xFFE50914), fontSize: 13),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          _buildLogo(),
+          const SizedBox(height: 14),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: GlassCard(
+                padding: const EdgeInsets.all(18),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Đăng nhập',
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 14),
+                      GlassInput(
+                        label: 'Email / SĐT / Tên đăng nhập',
+                        hint: 'Nhập thông tin đăng nhập',
+                        prefixIcon: LucideIcons.user,
+                        controller: _identifierController,
+                        validator: (v) => v?.isEmpty == true ? 'Vui lòng nhập thông tin' : null,
+                      ),
+                      const SizedBox(height: 10),
+                      GlassInput(
+                        label: 'Mật khẩu',
+                        hint: '••••••••',
+                        prefixIcon: LucideIcons.lock,
+                        obscureText: true,
+                        controller: _passwordController,
+                        validator: (v) => v?.isEmpty == true ? 'Vui lòng nhập mật khẩu' : null,
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                          ),
+                          child: const Text(
+                            'Quên mật khẩu?',
+                            style: TextStyle(color: Color(0xFFE50914), fontSize: 12),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    GlassPrimaryButton(
-                      label: 'Đăng nhập',
-                      onPressed: _login,
-                      isLoading: _isLoading,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildDivider(),
-                    const SizedBox(height: 16),
-                    _GoogleButton(onPressed: () {}),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GlassOutlineButton(
-                            label: 'OTP Email',
-                            icon: LucideIcons.mail,
-                            onPressed: () {},
+                      GlassPrimaryButton(
+                        label: 'Đăng nhập',
+                        onPressed: _login,
+                        isLoading: _isLoading,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDivider(),
+                      const SizedBox(height: 12),
+                      _GoogleButton(onPressed: () {}),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GlassOutlineButton(
+                              label: 'OTP Email',
+                              icon: LucideIcons.mail,
+                              onPressed: () {},
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: GlassOutlineButton(
-                            label: '2FA',
-                            icon: LucideIcons.shield,
-                            onPressed: () {},
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GlassOutlineButton(
+                              label: '2FA',
+                              icon: LucideIcons.shield,
+                              onPressed: () {},
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      GlassOutlineButton(
+                        label: 'Đăng nhập bằng vân tay',
+                        icon: LucideIcons.fingerprint,
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 28),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Chưa có tài khoản? ',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Chưa có tài khoản? ',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/register'),
+                child: const Text(
+                  'Đăng ký ngay',
+                  style: TextStyle(color: Color(0xFFE50914), fontWeight: FontWeight.w600),
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/register'),
-                  child: const Text(
-                    'Đăng ký ngay',
-                    style: TextStyle(
-                      color: Color(0xFFE50914),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 
   Widget _buildLogo() {
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          width: 72,
-          height: 72,
+          width: 44, height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xFFE50914).withValues(alpha: 0.12),
             border: Border.all(color: const Color(0xFFE50914).withValues(alpha: 0.4), width: 1.5),
           ),
-          child: const Icon(LucideIcons.clapperboard, color: Color(0xFFE50914), size: 36),
+          child: const Icon(LucideIcons.clapperboard, color: Color(0xFFE50914), size: 22),
         ),
-        const SizedBox(height: 12),
-        const Text(
-          'CineBook',
-          style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600, letterSpacing: 1.5),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Đặt vé xem phim dễ dàng',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'CineBook',
+              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 1),
+            ),
+            Text(
+              'Đặt vé xem phim dễ dàng',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
+            ),
+          ],
         ),
       ],
     );
@@ -176,10 +184,10 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.13))),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
             'hoặc đăng nhập bằng',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 12),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11),
           ),
         ),
         Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.13))),

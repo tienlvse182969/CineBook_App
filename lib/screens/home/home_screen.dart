@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -5,6 +6,7 @@ import 'package:ve_xem_phim/data/mock_movies.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/screens/home/movie_detail_screen.dart';
 import 'package:ve_xem_phim/screens/profile/profile_screen.dart';
+import 'package:ve_xem_phim/screens/support/support_chat_screen.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -125,7 +127,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildHelpButton(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportChatScreen())),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
@@ -212,17 +214,37 @@ class _MovieCarousel extends StatefulWidget {
 }
 
 class _MovieCarouselState extends State<_MovieCarousel> {
-  int _currentPage = 0;
+  // Virtual infinite scroll: dùng itemCount lớn, lấy index % length
+  static const int _virtualMultiplier = 500;
+  int _realIndex = 0;
   late final PageController _controller;
+  Timer? _timer;
+
+  int get _initialVirtualPage => widget.movies.length * (_virtualMultiplier ~/ 2);
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController(viewportFraction: 0.87);
+    _controller = PageController(
+      viewportFraction: 0.87,
+      initialPage: _initialVirtualPage,
+    );
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_controller.hasClients) return;
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -234,16 +256,17 @@ class _MovieCarouselState extends State<_MovieCarousel> {
         Expanded(
           child: PageView.builder(
             controller: _controller,
-            itemCount: widget.movies.length,
-            onPageChanged: (i) => setState(() => _currentPage = i),
+            itemCount: widget.movies.length * _virtualMultiplier,
+            onPageChanged: (i) => setState(() => _realIndex = i % widget.movies.length),
             itemBuilder: (context, i) {
+              final idx = i % widget.movies.length;
               return AnimatedScale(
-                scale: i == _currentPage ? 1.0 : 0.94,
+                scale: idx == _realIndex ? 1.0 : 0.94,
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOut,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: _MovieCard(movie: widget.movies[i]),
+                  child: _MovieCard(movie: widget.movies[idx]),
                 ),
               );
             },
@@ -259,7 +282,7 @@ class _MovieCarouselState extends State<_MovieCarousel> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(widget.movies.length, (i) {
-        final isActive = i == _currentPage;
+        final isActive = i == _realIndex;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,

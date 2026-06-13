@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ve_xem_phim/data/mock_profile.dart';
 import 'package:ve_xem_phim/screens/auth/login_screen.dart';
+import 'package:ve_xem_phim/screens/profile/edit_profile_screen.dart';
 import 'package:ve_xem_phim/screens/profile/my_tickets_screen.dart';
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     _iconBtn(LucideIcons.arrowLeft, onTap: () => Navigator.pop(context)),
                     const Spacer(),
-                    _iconBtn(LucideIcons.pencil),
+                    _iconBtn(LucideIcons.pencil, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()))),
                   ],
                 ),
                 const SizedBox(height: 28),
