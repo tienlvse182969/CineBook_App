@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ve_xem_phim/data/mock_movies.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/screens/home/movie_detail_screen.dart';
+import 'package:ve_xem_phim/screens/profile/profile_screen.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -74,7 +75,13 @@ class HomeScreen extends StatelessWidget {
           const Spacer(),
           _GlassIconButton(icon: LucideIcons.bell),
           const SizedBox(width: 8),
-          _GlassIconButton(icon: LucideIcons.user),
+          _GlassIconButton(
+            icon: LucideIcons.user,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
+          ),
         ],
       ),
     );
@@ -169,23 +176,27 @@ class HomeScreen extends StatelessWidget {
 
 class _GlassIconButton extends StatelessWidget {
   final IconData icon;
-  const _GlassIconButton({required this.icon});
+  final VoidCallback? onTap;
+  const _GlassIconButton({required this.icon, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.13)),
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.13)),
+            ),
+            child: Icon(icon, color: Colors.white70, size: 18),
           ),
-          child: Icon(icon, color: Colors.white70, size: 18),
         ),
       ),
     );

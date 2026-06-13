@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ve_xem_phim/data/mock_snacks.dart';
 import 'package:ve_xem_phim/models/payment_info.dart';
 import 'package:ve_xem_phim/models/snack.dart';
+import 'package:ve_xem_phim/screens/booking/payment_success_screen.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 // ── Payment method data ──────────────────────────────────────────
@@ -12,23 +13,25 @@ class _PayMethod {
   final String id;
   final String name;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
   final Color color;
+  final String? logoAsset; // SVG asset path, takes priority over icon
   const _PayMethod({
     required this.id,
     required this.name,
     required this.subtitle,
-    required this.icon,
     required this.color,
+    this.icon,
+    this.logoAsset,
   });
 }
 
 final _payMethods = <_PayMethod>[
-  const _PayMethod(id: 'momo',    name: 'MoMo',              subtitle: 'Ví điện tử MoMo',        icon: LucideIcons.smartphone,  color: Color(0xFFAE2A82)),
-  const _PayMethod(id: 'zalopay', name: 'ZaloPay',           subtitle: 'Ví điện tử ZaloPay',     icon: LucideIcons.zap,         color: Color(0xFF006AF5)),
-  const _PayMethod(id: 'vnpay',   name: 'VNPay',             subtitle: 'Ví VNPay & ngân hàng',   icon: LucideIcons.landmark,    color: Color(0xFFE41D2C)),
-  const _PayMethod(id: 'card',    name: 'Thẻ ngân hàng',     subtitle: 'Visa / Mastercard / JCB', icon: LucideIcons.creditCard,  color: Color(0xFF9C9C9C)),
-  const _PayMethod(id: 'cash',    name: 'Tiền mặt tại quầy', subtitle: 'Thanh toán khi nhận vé', icon: LucideIcons.banknote,    color: Color(0xFF4CAF50)),
+  const _PayMethod(id: 'momo',    name: 'MoMo',              subtitle: 'Ví điện tử MoMo',         color: Color(0xFFAE2A82), logoAsset: 'assets/logos/momo.png'),
+  const _PayMethod(id: 'zalopay', name: 'ZaloPay',           subtitle: 'Ví điện tử ZaloPay',      color: Color(0xFF006AF5), logoAsset: 'assets/logos/zalopay.png'),
+  const _PayMethod(id: 'vnpay',   name: 'VNPay',             subtitle: 'Ví VNPay & ngân hàng',    color: Color(0xFFE41D2C), logoAsset: 'assets/logos/vnpay.jpg'),
+  const _PayMethod(id: 'card',    name: 'Thẻ ngân hàng',     subtitle: 'Visa / Mastercard / JCB', color: Color(0xFF9C9C9C), icon: LucideIcons.creditCard),
+  const _PayMethod(id: 'cash',    name: 'Tiền mặt tại quầy', subtitle: 'Thanh toán khi nhận vé',  color: Color(0xFF4CAF50), icon: LucideIcons.banknote),
 ];
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -474,14 +477,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 38, height: 38,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: method.color.withValues(alpha: 0.12),
-                            border: Border.all(color: method.color.withValues(alpha: 0.35)),
-                          ),
-                          child: Icon(method.icon, size: 17, color: method.color),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: method.logoAsset != null
+                              ? Image.asset(method.logoAsset!, width: 38, height: 38, fit: BoxFit.cover)
+                              : Container(
+                                  width: 38, height: 38,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: method.color.withValues(alpha: 0.12),
+                                    border: Border.all(color: method.color.withValues(alpha: 0.35)),
+                                  ),
+                                  child: Icon(method.icon, size: 17, color: method.color),
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -605,7 +613,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           child: GlassPrimaryButton(
             label: 'Thanh toán  ·  ${_fmt(widget.info.grandTotal)}',
-            onPressed: _canPay ? () {} : null,
+            onPressed: _canPay
+                ? () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PaymentSuccessScreen(info: widget.info),
+                      ),
+                    )
+                : null,
           ),
         ),
       ),
