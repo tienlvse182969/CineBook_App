@@ -243,12 +243,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Date + showtime chips
-          Row(children: [
-            _InfoChip(icon: LucideIcons.calendar, label: '${date.day}/${date.month}/${date.year}'),
-            const SizedBox(width: 12),
-            _InfoChip(icon: LucideIcons.clock, label: b.showtime.time),
-          ]),
+          // Date + showtime + hall chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _InfoChip(icon: LucideIcons.calendar, label: '${date.day}/${date.month}/${date.year}'),
+              _InfoChip(icon: LucideIcons.clock, label: b.showtime.time),
+              _InfoChip(icon: LucideIcons.monitor, label: b.showtime.hall),
+            ],
+          ),
           const SizedBox(height: 14),
           Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
           const SizedBox(height: 14),

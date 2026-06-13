@@ -193,7 +193,7 @@ class TicketDetailScreen extends StatelessWidget {
                       Row(
                         children: [
                           _InfoCell(icon: LucideIcons.mapPin, label: 'Rạp chiếu', value: 'CGV Vincom Center'),
-                          _InfoCell(icon: LucideIcons.monitor, label: 'Phòng chiếu', value: 'Phòng 5 · 3D'),
+                          _InfoCell(icon: LucideIcons.monitor, label: 'Phòng chiếu', value: t.hall),
                         ],
                       ),
                       const SizedBox(height: 16),

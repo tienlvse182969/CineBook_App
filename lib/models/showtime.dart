@@ -1,10 +1,11 @@
 class ShowtimeData {
   final String time;
+  final String hall;
 
   /// Seat labels (e.g. "A3", "F7") that are already booked for this slot.
   final List<String> bookedSeats;
 
-  const ShowtimeData({required this.time, required this.bookedSeats});
+  const ShowtimeData({required this.time, required this.hall, required this.bookedSeats});
 
   static const int totalSeats = 90; // 9 rows × 10 cols
 

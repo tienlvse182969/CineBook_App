@@ -257,17 +257,20 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                     const SizedBox(height: 14),
                     Row(
                       children: [
-                        _InfoCell(
-                          icon: LucideIcons.ticket,
-                          label: 'Ghế',
-                          value: b.seatLabels.join(', '),
-                        ),
+                        _InfoCell(icon: LucideIcons.monitor,  label: 'Phòng chiếu', value: b.showtime.hall),
+                        _InfoCell(icon: LucideIcons.ticket,   label: 'Ghế',         value: b.seatLabels.join(', ')),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
                         _InfoCell(
                           icon: LucideIcons.banknote,
                           label: 'Tổng tiền',
                           value: _fmt(widget.info.grandTotal),
                           highlight: true,
                         ),
+                        const Expanded(child: SizedBox()),
                       ],
                     ),
                   ],

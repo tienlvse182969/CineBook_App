@@ -16,6 +16,7 @@ class MockTicket {
   final String movieTitle;
   final String date;
   final String time;
+  final String hall;
   final List<String> seats;
   final int total;
   final bool upcoming;
@@ -25,6 +26,7 @@ class MockTicket {
     required this.movieTitle,
     required this.date,
     required this.time,
+    required this.hall,
     required this.seats,
     required this.total,
     required this.upcoming,
@@ -39,6 +41,7 @@ const mockTickets = <MockTicket>[
     movieTitle: 'Mission: Impossible 8',
     date: '12/06/2026',
     time: '09:00',
+    hall: 'Phòng 1 · 2D',
     seats: ['D7', 'D8'],
     total: 150000,
     upcoming: true,
@@ -48,6 +51,7 @@ const mockTickets = <MockTicket>[
     movieTitle: 'Inside Out 3',
     date: '25/05/2026',
     time: '14:30',
+    hall: 'Phòng 3 · 3D',
     seats: ['E4', 'E5', 'E6'],
     total: 360000,
     upcoming: false,
@@ -57,6 +61,7 @@ const mockTickets = <MockTicket>[
     movieTitle: 'Avengers: Doomsday',
     date: '10/05/2026',
     time: '20:15',
+    hall: 'Phòng 5 · IMAX 3D',
     seats: ['F3'],
     total: 120000,
     upcoming: false,

@@ -7,7 +7,7 @@ import 'package:ve_xem_phim/models/showtime.dart';
 
 const List<ShowtimeData> weekdayShowtimes = [
   // 09:30 · ~17 % booked (15 / 90)
-  ShowtimeData(time: '09:30', bookedSeats: [
+  ShowtimeData(time: '09:30', hall: 'Phòng 1 · 2D', bookedSeats: [
     'A3', 'A8',
     'B5', 'B9',
     'C2', 'C7',
@@ -20,7 +20,7 @@ const List<ShowtimeData> weekdayShowtimes = [
   ]),
 
   // 12:00 · ~26 % booked (23 / 90)
-  ShowtimeData(time: '12:00', bookedSeats: [
+  ShowtimeData(time: '12:00', hall: 'Phòng 2 · 2D', bookedSeats: [
     'A2', 'A6', 'A10',
     'B3', 'B7',
     'C1', 'C5', 'C9',
@@ -34,7 +34,7 @@ const List<ShowtimeData> weekdayShowtimes = [
   ]),
 
   // 14:30 · ~23 % booked (21 / 90)
-  ShowtimeData(time: '14:30', bookedSeats: [
+  ShowtimeData(time: '14:30', hall: 'Phòng 3 · 3D', bookedSeats: [
     'A1', 'A5', 'A9',
     'B2', 'B6', 'B10',
     'C3', 'C7',
@@ -47,7 +47,7 @@ const List<ShowtimeData> weekdayShowtimes = [
   ]),
 
   // 17:00 · ~40 % booked (36 / 90)
-  ShowtimeData(time: '17:00', bookedSeats: [
+  ShowtimeData(time: '17:00', hall: 'Phòng 4 · 3D', bookedSeats: [
     'A1', 'A3', 'A5', 'A7', 'A9',
     'B2', 'B4', 'B6', 'B8',
     'C1', 'C3', 'C5', 'C7', 'C9',
@@ -60,7 +60,7 @@ const List<ShowtimeData> weekdayShowtimes = [
   ]),
 
   // 19:30 · ~54 % booked (49 / 90)  ← prime time
-  ShowtimeData(time: '19:30', bookedSeats: [
+  ShowtimeData(time: '19:30', hall: 'Phòng 5 · IMAX 3D', bookedSeats: [
     'A1', 'A2', 'A4', 'A5', 'A7', 'A8', 'A10',
     'B1', 'B3', 'B4', 'B6', 'B7', 'B9',
     'C1', 'C2', 'C4', 'C5', 'C7', 'C8',
@@ -73,7 +73,7 @@ const List<ShowtimeData> weekdayShowtimes = [
   ]),
 
   // 22:00 · ~30 % booked (27 / 90)
-  ShowtimeData(time: '22:00', bookedSeats: [
+  ShowtimeData(time: '22:00', hall: 'Phòng 6 · 4DX 3D', bookedSeats: [
     'A2', 'A6', 'A9',
     'B1', 'B4', 'B8',
     'C3', 'C7', 'C10',
@@ -93,7 +93,7 @@ const List<ShowtimeData> weekdayShowtimes = [
 
 const List<ShowtimeData> weekendShowtimes = [
   // 09:00 · ~16 % booked (14 / 90)
-  ShowtimeData(time: '09:00', bookedSeats: [
+  ShowtimeData(time: '09:00', hall: 'Phòng 1 · 2D', bookedSeats: [
     'A4', 'A9',
     'B2', 'B7',
     'C5', 'C10',
@@ -106,7 +106,7 @@ const List<ShowtimeData> weekendShowtimes = [
   ]),
 
   // 11:15 · ~29 % booked (26 / 90)
-  ShowtimeData(time: '11:15', bookedSeats: [
+  ShowtimeData(time: '11:15', hall: 'Phòng 2 · 2D', bookedSeats: [
     'A1', 'A5', 'A9',
     'B3', 'B7', 'B10',
     'C2', 'C6', 'C10',
@@ -120,7 +120,7 @@ const List<ShowtimeData> weekendShowtimes = [
   ]),
 
   // 13:30 · ~38 % booked (34 / 90)
-  ShowtimeData(time: '13:30', bookedSeats: [
+  ShowtimeData(time: '13:30', hall: 'Phòng 3 · 3D', bookedSeats: [
     'A1', 'A3', 'A5', 'A7',
     'B2', 'B4', 'B6', 'B8', 'B10',
     'C1', 'C3', 'C5', 'C7', 'C9',
@@ -133,7 +133,7 @@ const List<ShowtimeData> weekendShowtimes = [
   ]),
 
   // 15:45 · ~40 % booked (36 / 90)
-  ShowtimeData(time: '15:45', bookedSeats: [
+  ShowtimeData(time: '15:45', hall: 'Phòng 4 · 3D', bookedSeats: [
     'A2', 'A4', 'A6', 'A8', 'A10',
     'B1', 'B3', 'B5', 'B7', 'B9',
     'C2', 'C4', 'C6', 'C8',
@@ -146,7 +146,7 @@ const List<ShowtimeData> weekendShowtimes = [
   ]),
 
   // 18:00 · ~56 % booked (50 / 90)
-  ShowtimeData(time: '18:00', bookedSeats: [
+  ShowtimeData(time: '18:00', hall: 'Phòng 6 · 4DX 3D', bookedSeats: [
     'A1', 'A2', 'A4', 'A5', 'A7', 'A8',
     'B1', 'B2', 'B4', 'B5', 'B7', 'B8', 'B10',
     'C1', 'C2', 'C4', 'C5', 'C7', 'C8', 'C10',
@@ -159,7 +159,7 @@ const List<ShowtimeData> weekendShowtimes = [
   ]),
 
   // 20:15 · ~68 % booked (61 / 90)  ← nearly full
-  ShowtimeData(time: '20:15', bookedSeats: [
+  ShowtimeData(time: '20:15', hall: 'Phòng 5 · IMAX 3D', bookedSeats: [
     'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8',
     'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9',
     'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9',
@@ -172,7 +172,7 @@ const List<ShowtimeData> weekendShowtimes = [
   ]),
 
   // 22:30 · ~32 % booked (29 / 90)
-  ShowtimeData(time: '22:30', bookedSeats: [
+  ShowtimeData(time: '22:30', hall: 'Phòng 3 · 3D', bookedSeats: [
     'A3', 'A5', 'A7',
     'B2', 'B5', 'B7', 'B9',
     'C1', 'C4', 'C6', 'C8',

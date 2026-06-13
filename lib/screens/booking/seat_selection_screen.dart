@@ -556,6 +556,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       ],
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             showtime.time,
@@ -570,7 +571,17 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                             ),
                           ),
                           if (isSoldOut)
-                            Text('Hết vé', style: TextStyle(color: Colors.white.withValues(alpha: 0.2), fontSize: 9)),
+                            Text('Hết vé', style: TextStyle(color: Colors.white.withValues(alpha: 0.2), fontSize: 9))
+                          else
+                            Text(
+                              showtime.hall,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : Colors.white.withValues(alpha: 0.35),
+                                fontSize: 9,
+                              ),
+                            ),
                         ],
                       ),
                     ],
@@ -713,7 +724,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}  ·  ${_selectedShowtime.time}',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -722,9 +733,18 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Text(
-                    '${_selectedShowtime.availableSeats} ghế còn trống',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 10),
+                    _selectedShowtime.hall,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 10),
                   ),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              Row(children: [
+                Icon(LucideIcons.ticket, size: 11, color: Colors.white.withValues(alpha: 0.25)),
+                const SizedBox(width: 5),
+                Text(
+                  '${_selectedShowtime.availableSeats} ghế còn trống',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.28), fontSize: 10),
                 ),
               ]),
               const SizedBox(height: 10),
