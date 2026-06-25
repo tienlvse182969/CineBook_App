@@ -7,10 +7,36 @@ import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/screens/home/movie_detail_screen.dart';
 import 'package:ve_xem_phim/screens/profile/profile_screen.dart';
 import 'package:ve_xem_phim/screens/support/support_chat_screen.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<({List<Movie> nowShowing, List<Movie> upcoming})> _moviesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _moviesFuture = _loadMovies();
+  }
+
+  Future<({List<Movie> nowShowing, List<Movie> upcoming})> _loadMovies() async {
+    try {
+      final results = await Future.wait([
+        ApiService.getMovies(status: 'NOW_SHOWING'),
+        ApiService.getMovies(status: 'UPCOMING'),
+      ]);
+      return (nowShowing: results[0], upcoming: results[1]);
+    } catch (_) {
+      return (nowShowing: nowShowingMovies, upcoming: comingSoonMovies);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +50,22 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _buildTabBar(),
             const SizedBox(height: 12),
-            const Expanded(
-              child: TabBarView(
-                children: [
-                  _MovieCarousel(movies: nowShowingMovies),
-                  _MovieCarousel(movies: comingSoonMovies),
-                ],
+            Expanded(
+              child: FutureBuilder<({List<Movie> nowShowing, List<Movie> upcoming})>(
+                future: _moviesFuture,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
+                  }
+
+                  final movies = snapshot.data!;
+                  return TabBarView(
+                    children: [
+                      _MovieCarousel(movies: movies.nowShowing),
+                      _MovieCarousel(movies: movies.upcoming),
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 8),

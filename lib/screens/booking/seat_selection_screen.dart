@@ -6,25 +6,23 @@ import 'package:ve_xem_phim/models/booking_info.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/models/showtime.dart';
 import 'package:ve_xem_phim/screens/booking/snack_screen.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 enum _SeatType { regular, vip, booked }
 
 class _Seat {
+  final int? id;
   final String row;
   final int col;
   final _SeatType type;
+  final int price;
   bool isSelected = false;
 
-  _Seat({required this.row, required this.col, required this.type});
+  _Seat({this.id, required this.row, required this.col, required this.type, required this.price});
 
   String get label => '$row$col';
 
-  int get price => switch (type) {
-    _SeatType.regular => 75000,
-    _SeatType.vip => 120000,
-    _SeatType.booked => 0,
-  };
 }
 
 class SeatSelectionScreen extends StatefulWidget {
@@ -42,9 +40,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   late List<DateTime> _dates;
   late DateTime _selectedDate;
+  List<ShowtimeData> _allApiShowtimes = [];
   late List<ShowtimeData> _showtimes;
   late ShowtimeData _selectedShowtime;
   late List<List<_Seat>> _rows;
+  bool _loadingShowtimes = false;
+  bool _loadingSeats = false;
 
   @override
   void initState() {
@@ -55,6 +56,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     _showtimes = showtimesFor(_selectedDate);
     _selectedShowtime = _showtimes[0];
     _rows = _buildRows(_selectedShowtime.bookedSeats);
+    _loadApiShowtimes();
   }
 
   // ── Seat generation ─────────────────────────────────────────
@@ -71,6 +73,34 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           type: bookedSet.contains(label)
               ? _SeatType.booked
               : (isVip ? _SeatType.vip : _SeatType.regular),
+          price: bookedSet.contains(label)
+              ? 0
+              : (isVip ? (_selectedShowtime.price * 1.25).round() : _selectedShowtime.price),
+        );
+      });
+    }).toList();
+  }
+
+  List<List<_Seat>> _buildRowsFromApiSeats(List<ApiSeat> seats) {
+    final byLabel = {for (final seat in seats) seat.label: seat};
+    return _rowLabels.map((row) {
+      return List.generate(_cols, (ci) {
+        final col = ci + 1;
+        final label = '$row$col';
+        final apiSeat = byLabel[label];
+        final type = apiSeat == null ||
+                apiSeat.physicalStatus != 'ACTIVE' ||
+                apiSeat.bookingStatus == 'BOOKED'
+            ? _SeatType.booked
+            : (apiSeat.type == 'VIP' || apiSeat.type == 'COUPLE' ? _SeatType.vip : _SeatType.regular);
+        return _Seat(
+          id: apiSeat?.id,
+          row: row,
+          col: col,
+          type: type,
+          price: type == _SeatType.booked
+              ? 0
+              : (type == _SeatType.vip ? (_selectedShowtime.price * 1.25).round() : _selectedShowtime.price),
         );
       });
     }).toList();
@@ -79,13 +109,24 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   // ── Selection handlers ──────────────────────────────────────
 
   void _selectDate(DateTime date) {
-    final times = showtimesFor(date);
+    final times = widget.movie.id == null
+        ? showtimesFor(date)
+        : _allApiShowtimes.where((time) => _sameDay(time.startTime ?? date, date)).toList();
+    if (times.isEmpty) {
+      setState(() {
+        _selectedDate = date;
+        _showtimes = [];
+        _rows = _buildRows(const []);
+      });
+      return;
+    }
     setState(() {
       _selectedDate = date;
       _showtimes = times;
       _selectedShowtime = times[0];
       _rows = _buildRows(times[0].bookedSeats);
     });
+    _loadSeatsForSelected();
   }
 
   void _selectShowtime(ShowtimeData showtime) {
@@ -93,6 +134,57 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       _selectedShowtime = showtime;
       _rows = _buildRows(showtime.bookedSeats);
     });
+    _loadSeatsForSelected();
+  }
+
+  Future<void> _loadApiShowtimes() async {
+    final movieId = widget.movie.id;
+    if (movieId == null) return;
+    setState(() => _loadingShowtimes = true);
+    try {
+      final times = await ApiService.getShowtimes(movieId: movieId);
+      if (!mounted || times.isEmpty) return;
+      final dates = times
+          .map((time) => time.startTime)
+          .whereType<DateTime>()
+          .map((date) => DateTime(date.year, date.month, date.day))
+          .toSet()
+          .toList()
+        ..sort();
+      setState(() {
+        _allApiShowtimes = times;
+        _dates = dates.isEmpty ? _dates : dates;
+        _selectedDate = _dates[0];
+        _showtimes = times.where((time) => _sameDay(time.startTime ?? _selectedDate, _selectedDate)).toList();
+        _selectedShowtime = _showtimes[0];
+      });
+      await _loadSeatsForSelected();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _showtimes = showtimesFor(_selectedDate);
+          _selectedShowtime = _showtimes[0];
+          _rows = _buildRows(_selectedShowtime.bookedSeats);
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loadingShowtimes = false);
+    }
+  }
+
+  Future<void> _loadSeatsForSelected() async {
+    final showtimeId = _selectedShowtime.id;
+    if (showtimeId == null) return;
+    setState(() => _loadingSeats = true);
+    try {
+      final seats = await ApiService.getSeats(showtimeId);
+      if (!mounted) return;
+      setState(() => _rows = _buildRowsFromApiSeats(seats));
+    } catch (_) {
+      if (mounted) setState(() => _rows = _buildRows(_selectedShowtime.bookedSeats));
+    } finally {
+      if (mounted) setState(() => _loadingSeats = false);
+    }
   }
 
   void _toggle(_Seat seat) {
@@ -123,8 +215,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final regular = seats.where((s) => s.type == _SeatType.regular).length;
     final vip = seats.where((s) => s.type == _SeatType.vip).length;
     final parts = <String>[];
-    if (regular > 0) parts.add('$regular × 75.000 đ');
-    if (vip > 0) parts.add('$vip × 120.000 đ');
+    if (regular > 0) parts.add('$regular × ${_fmt(_selectedShowtime.price)}');
+    if (vip > 0) parts.add('$vip × ${_fmt((_selectedShowtime.price * 1.25).round())}');
     return parts.join('  +  ');
   }
 
@@ -264,6 +356,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             date: _selectedDate,
             showtime: _selectedShowtime,
             seatLabels: selected.map((s) => s.label).toList(),
+            seatIds: selected.map((s) => s.id).whereType<int>().toList(),
             regularCount: selected.where((s) => s.type == _SeatType.regular).length,
             vipCount: selected.where((s) => s.type == _SeatType.vip).length,
             ticketTotal: _totalPrice,
@@ -305,6 +398,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               _buildDatePicker(),
               const SizedBox(height: 12),
               _buildShowtimePicker(),
+              if (_loadingShowtimes || _loadingSeats)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: LinearProgressIndicator(color: Color(0xFFE50914), minHeight: 2),
+                ),
               const SizedBox(height: 16),
               _buildScreenIndicator(),
               const SizedBox(height: 12),

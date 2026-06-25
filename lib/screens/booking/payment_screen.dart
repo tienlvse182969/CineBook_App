@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_snacks.dart';
 import 'package:ve_xem_phim/models/payment_info.dart';
 import 'package:ve_xem_phim/models/snack.dart';
 import 'package:ve_xem_phim/screens/booking/payment_success_screen.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 // ── Payment method data ──────────────────────────────────────────
@@ -49,14 +49,59 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _termsAccepted = false;
   String _discountCode = '';
   bool _discountApplied = false;
+  bool _isPaying = false;
 
   bool get _canPay => _selectedMethod != null && _termsAccepted;
 
-  List<(SnackItem, int)> get _orderedSnacks => snackCategories
-      .expand((c) => c.items)
+  List<(SnackItem, int)> get _orderedSnacks => widget.info.snackItems
       .where((item) => (widget.info.snackQty[item.id] ?? 0) > 0)
       .map((item) => (item, widget.info.snackQty[item.id]!))
       .toList();
+
+  Future<void> _pay() async {
+    final method = _selectedMethod;
+    final showtimeId = widget.info.booking.showtime.id;
+    if (method == null || showtimeId == null || widget.info.booking.seatIds.isEmpty) {
+      _showError('Thiếu thông tin đặt vé. Vui lòng chọn lại suất chiếu và ghế.');
+      return;
+    }
+
+    setState(() => _isPaying = true);
+    try {
+      await ApiService.createBooking(
+        showtimeId: showtimeId,
+        seatIds: widget.info.booking.seatIds,
+        snackQty: widget.info.snackQty,
+        paymentMethod: _paymentMethodFor(method),
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => PaymentSuccessScreen(info: widget.info)),
+      );
+    } catch (error) {
+      if (mounted) _showError(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isPaying = false);
+    }
+  }
+
+  String _paymentMethodFor(String method) {
+    switch (method) {
+      case 'cash':
+        return 'CASH';
+      case 'card':
+        return 'CREDIT_CARD';
+      default:
+        return 'E_WALLET';
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: const Color(0xFFE50914)),
+    );
+  }
 
   Color get _ageColor {
     switch (widget.info.booking.movie.ageRating) {
@@ -617,14 +662,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           child: GlassPrimaryButton(
             label: 'Thanh toán  ·  ${_fmt(widget.info.grandTotal)}',
-            onPressed: _canPay
-                ? () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PaymentSuccessScreen(info: widget.info),
-                      ),
-                    )
-                : null,
+            isLoading: _isPaying,
+            onPressed: _canPay && !_isPaying ? _pay : null,
           ),
         ),
       ),

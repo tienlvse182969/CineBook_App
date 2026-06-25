@@ -6,6 +6,7 @@ import 'package:ve_xem_phim/models/booking_info.dart';
 import 'package:ve_xem_phim/models/payment_info.dart';
 import 'package:ve_xem_phim/models/snack.dart';
 import 'package:ve_xem_phim/screens/booking/payment_screen.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 class SnackScreen extends StatefulWidget {
@@ -17,7 +18,29 @@ class SnackScreen extends StatefulWidget {
 }
 
 class _SnackScreenState extends State<SnackScreen> {
-  final Map<String, int> _qty = {};
+  final Map<int, int> _qty = {};
+  List<SnackCategory> _categories = snackCategories;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSnacks();
+  }
+
+  Future<void> _loadSnacks() async {
+    setState(() => _loading = true);
+    try {
+      final categories = await ApiService.getSnackCategories();
+      if (mounted && categories.isNotEmpty) {
+        setState(() => _categories = categories);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _categories = snackCategories);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   // ── Quantity helpers ────────────────────────────────────────
 
@@ -40,9 +63,14 @@ class _SnackScreenState extends State<SnackScreen> {
 
   // ── Price helpers ───────────────────────────────────────────
 
-  int get _snackTotal => snackCategories
+  int get _snackTotal => _categories
       .expand((c) => c.items)
       .fold(0, (sum, item) => sum + (_qty[item.id] ?? 0) * item.price);
+
+  List<SnackItem> get _selectedSnackItems => _categories
+      .expand((c) => c.items)
+      .where((item) => (_qty[item.id] ?? 0) > 0)
+      .toList();
 
   int get _grandTotal => widget.booking.ticketTotal + _snackTotal;
 
@@ -97,6 +125,11 @@ class _SnackScreenState extends State<SnackScreen> {
               SafeArea(bottom: false, child: _buildHeader(context)),
               const SizedBox(height: 12),
               _buildInfoCard(),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: LinearProgressIndicator(color: Color(0xFFE50914), minHeight: 2),
+                ),
               const SizedBox(height: 8),
               Expanded(
                 child: ListView.builder(
@@ -104,8 +137,8 @@ class _SnackScreenState extends State<SnackScreen> {
                     16, 8, 16,
                     MediaQuery.of(context).padding.bottom + 240,
                   ),
-                  itemCount: snackCategories.length,
-                  itemBuilder: (_, i) => _buildCategory(snackCategories[i]),
+                  itemCount: _categories.length,
+                  itemBuilder: (_, i) => _buildCategory(_categories[i]),
                 ),
               ),
             ],
@@ -455,6 +488,7 @@ class _SnackScreenState extends State<SnackScreen> {
                       info: PaymentInfo(
                         booking: widget.booking,
                         snackQty: Map.from(_qty),
+                        snackItems: _selectedSnackItems,
                         snackTotal: _snackTotal,
                       ),
                     ),

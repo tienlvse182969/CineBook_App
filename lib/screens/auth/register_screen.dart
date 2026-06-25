@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -12,6 +13,7 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   int _currentStep = 0;
   String _verifyMethod = 'otp';
+  bool _isSubmitting = false;
 
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -57,7 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (date != null) setState(() => _birthDate = date);
   }
 
-  void _next() {
+  Future<void> _next() async {
     if (_currentStep == 0) {
       if (_step1FormKey.currentState?.validate() ?? false) {
         setState(() => _currentStep = 1);
@@ -65,7 +67,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else if (_currentStep == 1) {
       setState(() => _currentStep = 2);
     } else {
-      Navigator.pop(context);
+      await _register();
+    }
+  }
+
+  Future<void> _register() async {
+    if (_birthDate == null) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await ApiService.register(
+        fullName: _usernameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+        dateOfBirth: _birthDate!,
+      );
+      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: const Color(0xFFE50914),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -291,7 +319,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          GlassPrimaryButton(label: 'Xác nhận & Đăng ký', onPressed: _next),
+          GlassPrimaryButton(
+            label: 'Xác nhận & Đăng ký',
+            onPressed: _isSubmitting ? null : _next,
+            isLoading: _isSubmitting,
+          ),
         ],
       ),
     );
