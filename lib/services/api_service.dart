@@ -16,27 +16,29 @@ class ApiService {
   static String? token;
 
   static Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
+    'Content-Type': 'application/json',
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
 
   static Future<List<Movie>> getMovies({String? status}) async {
-    final uri = Uri.parse('$baseUrl/api/movies').replace(
-      queryParameters: status == null ? null : {'status': status},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/api/movies',
+    ).replace(queryParameters: status == null ? null : {'status': status});
     final data = await _getList(uri);
     return data.map((item) => Movie.fromJson(item)).toList();
   }
 
   static Future<List<ShowtimeData>> getShowtimes({required int movieId}) async {
-    final uri = Uri.parse('$baseUrl/api/showtimes').replace(
-      queryParameters: {'movie_id': '$movieId'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/api/showtimes',
+    ).replace(queryParameters: {'movie_id': '$movieId'});
     final data = await _getList(uri);
     return data.map((item) => ShowtimeData.fromJson(item)).toList();
   }
 
-  static Future<ShowtimeData> getShowtimeWithSeats(ShowtimeData showtime) async {
+  static Future<ShowtimeData> getShowtimeWithSeats(
+    ShowtimeData showtime,
+  ) async {
     if (showtime.id == null) return showtime;
     final uri = Uri.parse('$baseUrl/api/showtimes/${showtime.id}/seats');
     final data = await _getList(uri);
@@ -54,13 +56,20 @@ class ApiService {
   }
 
   static Future<List<SnackCategory>> getSnackCategories() async {
-    final data = await _getList(Uri.parse('$baseUrl/api/snacks?status=AVAILABLE'));
-    final items = data.map(SnackItem.fromJson).where((item) => item.id > 0).toList();
+    final data = await _getList(
+      Uri.parse('$baseUrl/api/snacks?status=AVAILABLE'),
+    );
+    final items = data
+        .map(SnackItem.fromJson)
+        .where((item) => item.id > 0)
+        .toList();
     final groups = <String, List<SnackItem>>{};
     for (final item in items) {
       groups.putIfAbsent(_categoryName(item.type), () => []).add(item);
     }
-    return groups.entries.map((entry) => SnackCategory(name: entry.key, items: entry.value)).toList();
+    return groups.entries
+        .map((entry) => SnackCategory(name: entry.key, items: entry.value))
+        .toList();
   }
 
   static Future<void> login(String email, String password) async {
@@ -77,6 +86,7 @@ class ApiService {
     required String phone,
     required String password,
     required DateTime dateOfBirth,
+    required String otp,
   }) async {
     final json = await _postJson(Uri.parse('$baseUrl/api/auth/register'), {
       'full_name': fullName,
@@ -84,8 +94,15 @@ class ApiService {
       'phone': phone.isEmpty ? null : phone,
       'password': password,
       'date_of_birth': _dateOnly(dateOfBirth),
+      'otp': otp,
     });
     token = json['token']?.toString();
+  }
+
+  static Future<void> requestRegistrationOtp(String email) async {
+    await _postJson(Uri.parse('$baseUrl/api/auth/register/request-otp'), {
+      'email': email.trim(),
+    });
   }
 
   static Future<Map<String, dynamic>> createBooking({
@@ -115,8 +132,15 @@ class ApiService {
     throw Exception('Unexpected response from $uri');
   }
 
-  static Future<Map<String, dynamic>> _postJson(Uri uri, Map<String, dynamic> body) async {
-    final response = await http.post(uri, headers: _headers, body: jsonEncode(body));
+  static Future<Map<String, dynamic>> _postJson(
+    Uri uri,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await http.post(
+      uri,
+      headers: _headers,
+      body: jsonEncode(body),
+    );
     final json = _decode(response);
     if (json is Map<String, dynamic>) return json;
     throw Exception('Unexpected response from $uri');
@@ -164,10 +188,10 @@ class ApiSeat {
   });
 
   factory ApiSeat.fromJson(Map<String, dynamic> json) => ApiSeat(
-        id: (json['seat_id'] as num?)?.toInt() ?? 0,
-        label: '${json['row_name']}${json['seat_number']}',
-        type: json['type']?.toString() ?? 'STANDARD',
-        physicalStatus: json['physical_status']?.toString() ?? 'ACTIVE',
-        bookingStatus: json['booking_status']?.toString() ?? 'AVAILABLE',
-      );
+    id: (json['seat_id'] as num?)?.toInt() ?? 0,
+    label: '${json['row_name']}${json['seat_number']}',
+    type: json['type']?.toString() ?? 'STANDARD',
+    physicalStatus: json['physical_status']?.toString() ?? 'ACTIVE',
+    bookingStatus: json['booking_status']?.toString() ?? 'AVAILABLE',
+  );
 }
