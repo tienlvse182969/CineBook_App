@@ -51,22 +51,29 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildTabBar(),
             const SizedBox(height: 12),
             Expanded(
-              child: FutureBuilder<({List<Movie> nowShowing, List<Movie> upcoming})>(
-                future: _moviesFuture,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
-                  }
+              child:
+                  FutureBuilder<
+                    ({List<Movie> nowShowing, List<Movie> upcoming})
+                  >(
+                    future: _moviesFuture,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFE50914),
+                          ),
+                        );
+                      }
 
-                  final movies = snapshot.data!;
-                  return TabBarView(
-                    children: [
-                      _MovieCarousel(movies: movies.nowShowing),
-                      _MovieCarousel(movies: movies.upcoming),
-                    ],
-                  );
-                },
-              ),
+                      final movies = snapshot.data!;
+                      return TabBarView(
+                        children: [
+                          _MovieCarousel(movies: movies.nowShowing),
+                          _MovieCarousel(movies: movies.upcoming),
+                        ],
+                      );
+                    },
+                  ),
             ),
             const SizedBox(height: 8),
             Padding(
@@ -90,7 +97,11 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.clapperboard, color: Color(0xFFE50914), size: 20),
+                  const Icon(
+                    LucideIcons.clapperboard,
+                    color: Color(0xFFE50914),
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'CineBook',
@@ -106,7 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 2),
               Text(
                 'Chào mừng trở lại!',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -136,7 +150,10 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.13), width: 1.5),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.13),
+                width: 1.5,
+              ),
             ),
             child: TabBar(
               indicatorSize: TabBarIndicatorSize.tab,
@@ -146,8 +163,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white38,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 14,
+              ),
               dividerColor: Colors.transparent,
               padding: const EdgeInsets.all(4),
               tabs: const [
@@ -163,7 +186,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHelpButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportChatScreen())),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SupportChatScreen()),
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
@@ -173,7 +199,10 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.13), width: 1.5),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.13),
+                width: 1.5,
+              ),
             ),
             child: Row(
               children: [
@@ -184,7 +213,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     shape: BoxShape.circle,
                     color: const Color(0xFFE50914).withValues(alpha: 0.15),
                   ),
-                  child: const Icon(LucideIcons.headphones, color: Color(0xFFE50914), size: 20),
+                  child: const Icon(
+                    LucideIcons.headphones,
+                    color: Color(0xFFE50914),
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Column(
@@ -192,17 +225,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Text(
                       'Bạn cần hỗ trợ gì?',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Liên hệ với chúng tôi',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
                 const Spacer(),
-                Icon(LucideIcons.chevronRight, color: Colors.white.withValues(alpha: 0.35), size: 18),
+                Icon(
+                  LucideIcons.chevronRight,
+                  color: Colors.white.withValues(alpha: 0.35),
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -256,7 +300,8 @@ class _MovieCarouselState extends State<_MovieCarousel> {
   late final PageController _controller;
   Timer? _timer;
 
-  int get _initialVirtualPage => widget.movies.length * (_virtualMultiplier ~/ 2);
+  int get _initialVirtualPage =>
+      widget.movies.length * (_virtualMultiplier ~/ 2);
 
   @override
   void initState() {
@@ -293,7 +338,8 @@ class _MovieCarouselState extends State<_MovieCarousel> {
           child: PageView.builder(
             controller: _controller,
             itemCount: widget.movies.length * _virtualMultiplier,
-            onPageChanged: (i) => setState(() => _realIndex = i % widget.movies.length),
+            onPageChanged: (i) =>
+                setState(() => _realIndex = i % widget.movies.length),
             itemBuilder: (context, i) {
               final idx = i % widget.movies.length;
               return AnimatedScale(
@@ -327,7 +373,9 @@ class _MovieCarouselState extends State<_MovieCarousel> {
           height: 6,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(3),
-            color: isActive ? const Color(0xFFE50914) : Colors.white.withValues(alpha: 0.22),
+            color: isActive
+                ? const Color(0xFFE50914)
+                : Colors.white.withValues(alpha: 0.22),
           ),
         );
       }),
@@ -348,133 +396,177 @@ class _MovieCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: movie.colors,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: movie.colors,
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            // Decorative circles
-            Positioned(
-              top: -40,
-              right: -40,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05),
+          child: Stack(
+            children: [
+              if (movie.posterUrl != null)
+                Positioned.fill(
+                  child: Image.network(
+                    movie.posterUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              bottom: 140,
-              left: -60,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.04),
-                ),
-              ),
-            ),
-            // Center film icon
-            Center(
-              child: Icon(
-                LucideIcons.film,
-                size: 110,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-            ),
-            // Bottom frost glass info panel
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      border: Border(
-                        top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          movie.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(
+                          alpha: movie.posterUrl == null ? 0.0 : 0.10,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          movie.genre,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            _InfoChip(icon: LucideIcons.star, label: movie.rating, highlight: true),
-                            const SizedBox(width: 10),
-                            _InfoChip(icon: LucideIcons.clock, label: movie.duration),
-                            const SizedBox(width: 10),
-                            _InfoChip(icon: LucideIcons.calendar, label: movie.year),
-                            const Spacer(),
-                            SizedBox(
-                              height: 34,
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE50914),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                ),
-                                child: const Text(
-                                  'Đặt vé',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        Colors.black.withValues(alpha: 0.20),
+                        Colors.black.withValues(alpha: 0.78),
                       ],
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+              // Decorative circles
+              Positioned(
+                top: -40,
+                right: -40,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 140,
+                left: -60,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.04),
+                  ),
+                ),
+              ),
+              // Center film icon
+              if (movie.posterUrl == null)
+                Center(
+                  child: Icon(
+                    LucideIcons.film,
+                    size: 110,
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                ),
+              // Bottom frost glass info panel
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        border: Border(
+                          top: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            movie.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            movie.genre,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.55),
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              _InfoChip(
+                                icon: LucideIcons.star,
+                                label: movie.rating,
+                                highlight: true,
+                              ),
+                              const SizedBox(width: 10),
+                              _InfoChip(
+                                icon: LucideIcons.clock,
+                                label: movie.duration,
+                              ),
+                              const SizedBox(width: 10),
+                              _InfoChip(
+                                icon: LucideIcons.calendar,
+                                label: movie.year,
+                              ),
+                              const Spacer(),
+                              SizedBox(
+                                height: 34,
+                                child: ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE50914),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Đặt vé',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -483,7 +575,11 @@ class _InfoChip extends StatelessWidget {
   final String label;
   final bool highlight;
 
-  const _InfoChip({required this.icon, required this.label, this.highlight = false});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
