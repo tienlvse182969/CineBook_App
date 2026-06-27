@@ -17,6 +17,7 @@ class Movie {
   final String language;
   final String firstShowing;
   final String status;
+  final String? posterUrl;
 
   const Movie({
     this.id,
@@ -35,6 +36,7 @@ class Movie {
     required this.language,
     required this.firstShowing,
     this.status = 'NOW_SHOWING',
+    this.posterUrl,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -65,6 +67,7 @@ class Movie {
       cast: cast,
       description: json['description']?.toString() ?? 'Nội dung phim đang được cập nhật.',
       status: json['status']?.toString() ?? 'NOW_SHOWING',
+      posterUrl: json['poster_url']?.toString(),
     );
   }
 

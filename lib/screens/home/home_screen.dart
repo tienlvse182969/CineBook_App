@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_movies.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/screens/home/movie_detail_screen.dart';
 import 'package:ve_xem_phim/screens/profile/profile_screen.dart';
@@ -18,63 +17,194 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<({List<Movie> nowShowing, List<Movie> upcoming})> _moviesFuture;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  List<Movie> _nowShowing = [];
+  List<Movie> _upcoming = [];
+  bool _isLoading = true;
+  Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _moviesFuture = _loadMovies();
+    _searchController.addListener(_onSearchChanged);
+    _loadMovies();
   }
 
-  Future<({List<Movie> nowShowing, List<Movie> upcoming})> _loadMovies() async {
+  void _onSearchChanged() {
+    setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMovies() async {
+    setState(() { _isLoading = true; _error = null; });
     try {
       final results = await Future.wait([
         ApiService.getMovies(status: 'NOW_SHOWING'),
         ApiService.getMovies(status: 'UPCOMING'),
       ]);
-      return (nowShowing: results[0], upcoming: results[1]);
-    } catch (_) {
-      return (nowShowing: nowShowingMovies, upcoming: comingSoonMovies);
+      if (!mounted) return;
+      setState(() {
+        _nowShowing = results[0];
+        _upcoming = results[1];
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e; _isLoading = false; });
     }
+  }
+
+  List<Movie> get _searchResults {
+    final all = [..._nowShowing, ..._upcoming];
+    if (_searchQuery.isEmpty) return all;
+    return all.where((m) =>
+      m.title.toLowerCase().contains(_searchQuery) ||
+      m.genre.toLowerCase().contains(_searchQuery)
+    ).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: AuthBackground(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 20),
-            _buildTabBar(),
-            const SizedBox(height: 12),
-            Expanded(
-              child: FutureBuilder<({List<Movie> nowShowing, List<Movie> upcoming})>(
-                future: _moviesFuture,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)));
-                  }
+    final isSearching = _searchQuery.isNotEmpty;
+    final searchResults = isSearching ? _searchResults : <Movie>[];
 
-                  final movies = snapshot.data!;
-                  return TabBarView(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: _buildFab(context),
+      body: AuthBackground(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverToBoxAdapter(child: const SizedBox(height: 16)),
+            SliverToBoxAdapter(child: _buildSearchBar()),
+            SliverToBoxAdapter(child: const SizedBox(height: 20)),
+            if (_isLoading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator(color: Color(0xFFE50914))),
+              )
+            else if (_error != null)
+              SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _MovieCarousel(movies: movies.nowShowing),
-                      _MovieCarousel(movies: movies.upcoming),
+                      const Icon(LucideIcons.wifiOff, color: Colors.white38, size: 48),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Không thể tải dữ liệu phim',
+                        style: TextStyle(color: Colors.white60, fontSize: 15),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _loadMovies,
+                        child: const Text('Thử lại', style: TextStyle(color: Color(0xFFE50914))),
+                      ),
                     ],
-                  );
-                },
+                  ),
+                ),
+              )
+            else if (isSearching) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    searchResults.isEmpty
+                        ? 'Không tìm thấy phim nào'
+                        : 'Kết quả: ${searchResults.length} phim',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _buildHelpButton(context),
-            ),
-            const SizedBox(height: 20),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              if (searchResults.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 40),
+                    child: Column(
+                      children: [
+                        const Icon(LucideIcons.searchX, color: Colors.white24, size: 52),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Thử tìm tên khác nhé!',
+                          style: TextStyle(color: Colors.white38, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverGrid(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => _CompactMovieCard(movie: searchResults[i]),
+                      childCount: searchResults.length,
+                    ),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 0.65,
+                    ),
+                  ),
+                ),
+            ] else ...[
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 400,
+                  child: _MovieCarousel(movies: _nowShowing),
+                ),
+              ),
+              SliverToBoxAdapter(child: const SizedBox(height: 28)),
+              SliverToBoxAdapter(child: _buildSectionHeader('Đang chiếu', LucideIcons.film)),
+              SliverToBoxAdapter(child: const SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _buildMovieRow(_nowShowing, context)),
+              SliverToBoxAdapter(child: const SizedBox(height: 28)),
+              SliverToBoxAdapter(child: _buildSectionHeader('Sắp chiếu', LucideIcons.calendar)),
+              SliverToBoxAdapter(child: const SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _buildMovieRow(_upcoming, context)),
+            ],
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFab(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SupportChatScreen()),
+      ),
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFE50914),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFE50914).withValues(alpha: 0.5),
+                  blurRadius: 24,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(LucideIcons.headset, color: Colors.white, size: 24),
+          ),
         ),
       ),
     );
@@ -111,8 +241,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const Spacer(),
-          _GlassIconButton(icon: LucideIcons.bell),
-          const SizedBox(width: 8),
           _GlassIconButton(
             icon: LucideIcons.user,
             onTap: () => Navigator.push(
@@ -125,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: ClipRRect(
@@ -138,22 +266,23 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Colors.white.withValues(alpha: 0.13), width: 1.5),
             ),
-            child: TabBar(
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(11),
-                color: const Color(0xFFE50914),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              cursorColor: const Color(0xFFE50914),
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm phim...',
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 14),
+                prefixIcon: Icon(LucideIcons.search, color: Colors.white.withValues(alpha: 0.35), size: 18),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(LucideIcons.x, color: Colors.white.withValues(alpha: 0.45), size: 18),
+                        onPressed: () => _searchController.clear(),
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white38,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
-              dividerColor: Colors.transparent,
-              padding: const EdgeInsets.all(4),
-              tabs: const [
-                Tab(text: 'Đang chiếu'),
-                Tab(text: 'Sắp chiếu'),
-              ],
             ),
           ),
         ),
@@ -161,56 +290,41 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHelpButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportChatScreen())),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.13), width: 1.5),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFE50914).withValues(alpha: 0.15),
-                  ),
-                  child: const Icon(LucideIcons.headphones, color: Color(0xFFE50914), size: 20),
-                ),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Bạn cần hỗ trợ gì?',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Liên hệ với chúng tôi',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Icon(LucideIcons.chevronRight, color: Colors.white.withValues(alpha: 0.35), size: 18),
-              ],
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFFE50914), size: 18),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMovieRow(List<Movie> movies, BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        scrollDirection: Axis.horizontal,
+        itemCount: movies.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, i) => _CompactMovieCard(movie: movies[i]),
       ),
     );
   }
 }
+
+// ── Sub-widgets ───────────────────────────────────────────────
 
 class _GlassIconButton extends StatelessWidget {
   final IconData icon;
@@ -250,7 +364,6 @@ class _MovieCarousel extends StatefulWidget {
 }
 
 class _MovieCarouselState extends State<_MovieCarousel> {
-  // Virtual infinite scroll: dùng itemCount lớn, lấy index % length
   static const int _virtualMultiplier = 500;
   int _realIndex = 0;
   late final PageController _controller;
@@ -348,67 +461,194 @@ class _MovieCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: movie.colors,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: movie.colors,
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: -40, right: -40,
+                child: Container(
+                  width: 220, height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 140, left: -60,
+                child: Container(
+                  width: 200, height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.04),
+                  ),
+                ),
+              ),
+              if (movie.posterUrl != null)
+                Positioned.fill(
+                  child: Image.network(
+                    movie.posterUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Center(
+                      child: Icon(LucideIcons.film, size: 110, color: Colors.white.withValues(alpha: 0.08)),
+                    ),
+                  ),
+                )
+              else
+                Center(
+                  child: Icon(LucideIcons.film, size: 110, color: Colors.white.withValues(alpha: 0.08)),
+                ),
+              Positioned(
+                bottom: 0, left: 0, right: 0,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        border: Border(
+                          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            movie.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            movie.genre,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.55),
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: _InfoChip(icon: LucideIcons.star, label: movie.rating, highlight: true),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _InfoChip(icon: LucideIcons.clock, label: movie.duration),
+                                    const SizedBox(width: 10),
+                                    _InfoChip(icon: LucideIcons.calendar, label: movie.year),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              SizedBox(
+                                height: 34,
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: movie)),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE50914),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  ),
+                                  child: const Text(
+                                    'Đặt vé',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        child: Stack(
-          children: [
-            // Decorative circles
-            Positioned(
-              top: -40,
-              right: -40,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
+      ),
+    );
+  }
+}
+
+class _CompactMovieCard extends StatelessWidget {
+  final Movie movie;
+  const _CompactMovieCard({required this.movie});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: movie)),
+      ),
+      child: SizedBox(
+        width: 130,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: movie.colors,
               ),
             ),
-            Positioned(
-              bottom: 140,
-              left: -60,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.04),
-                ),
-              ),
-            ),
-            // Center film icon
-            Center(
-              child: Icon(
-                LucideIcons.film,
-                size: 110,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-            ),
-            // Bottom frost glass info panel
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Stack(
+              children: [
+                if (movie.posterUrl != null)
+                  Positioned.fill(
+                    child: Image.network(
+                      movie.posterUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Center(
+                        child: Icon(LucideIcons.film, size: 40, color: Colors.white.withValues(alpha: 0.15)),
+                      ),
+                    ),
+                  )
+                else
+                  Center(
+                    child: Icon(LucideIcons.film, size: 40, color: Colors.white.withValues(alpha: 0.15)),
+                  ),
+                Positioned(
+                  bottom: 0, left: 0, right: 0,
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(10, 28, 10, 10),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      border: Border(
-                        top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.88)],
                       ),
                     ),
                     child: Column(
@@ -419,47 +659,27 @@ class _MovieCard extends StatelessWidget {
                           movie.title,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.3,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          movie.genre,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 5),
                         Row(
                           children: [
-                            _InfoChip(icon: LucideIcons.star, label: movie.rating, highlight: true),
-                            const SizedBox(width: 10),
-                            _InfoChip(icon: LucideIcons.clock, label: movie.duration),
-                            const SizedBox(width: 10),
-                            _InfoChip(icon: LucideIcons.calendar, label: movie.year),
-                            const Spacer(),
-                            SizedBox(
-                              height: 34,
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE50914),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                            const Icon(LucideIcons.star, color: Color(0xFFFFB300), size: 11),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                movie.rating,
+                                style: const TextStyle(
+                                  color: Color(0xFFFFB300),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                child: const Text(
-                                  'Đặt vé',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -468,13 +688,12 @@ class _MovieCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -496,12 +715,15 @@ class _InfoChip extends StatelessWidget {
           size: 13,
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: highlight ? const Color(0xFFFFB300) : Colors.white60,
-            fontSize: 12,
-            fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: highlight ? const Color(0xFFFFB300) : Colors.white60,
+              fontSize: 12,
+              fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

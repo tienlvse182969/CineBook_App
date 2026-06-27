@@ -140,10 +140,21 @@ class MovieDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Big background icon
-          Center(
-            child: Icon(LucideIcons.film, size: 130, color: Colors.white.withValues(alpha: 0.07)),
-          ),
+          // Poster image or fallback icon
+          if (movie.posterUrl != null)
+            Positioned.fill(
+              child: Image.network(
+                movie.posterUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Center(
+                  child: Icon(LucideIcons.film, size: 130, color: Colors.white.withValues(alpha: 0.07)),
+                ),
+              ),
+            )
+          else
+            Center(
+              child: Icon(LucideIcons.film, size: 130, color: Colors.white.withValues(alpha: 0.07)),
+            ),
           // Trailer play button
           Center(
             child: GestureDetector(
