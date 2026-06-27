@@ -212,6 +212,45 @@ class TicketDetailScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (t.snacks.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                Icon(LucideIcons.shoppingBag, size: 12, color: Colors.white.withValues(alpha: 0.35)),
+                                const SizedBox(width: 6),
+                                Text('Đồ ăn & đồ uống', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
+                              ]),
+                              const SizedBox(height: 8),
+                              ...t.snacks.map((s) => Padding(
+                                padding: const EdgeInsets.only(bottom: 5),
+                                child: Row(children: [
+                                  Container(
+                                    width: 20, height: 20,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF97316).withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: Center(child: Text('${s.qty}', style: const TextStyle(color: Color(0xFFF97316), fontSize: 10, fontWeight: FontWeight.bold))),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(s.name, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12))),
+                                  Text(_fmt(s.unitPrice * s.qty), style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11)),
+                                ]),
+                              )),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

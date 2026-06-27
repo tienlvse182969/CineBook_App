@@ -266,6 +266,13 @@ class _TicketCard extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            if (t.snacks.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              _Row(
+                                icon: LucideIcons.shoppingBag,
+                                text: t.snacks.map((s) => '${s.name} x${s.qty}').join(' · '),
+                              ),
+                            ],
                           ],
                         ),
                       ),
