@@ -1,15 +1,47 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_profile.dart';
+import 'package:ve_xem_phim/models/booking_record.dart';
 import 'package:ve_xem_phim/screens/auth/login_screen.dart';
 import 'package:ve_xem_phim/screens/profile/edit_profile_screen.dart';
 import 'package:ve_xem_phim/screens/profile/my_tickets_screen.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 
 // ── Screen ───────────────────────────────────────────────────────
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  List<BookingRecord> _bookings = [];
+  bool _loadingBookings = false;
+
+  static const int _points = 1250;
+  static const int _tierPoints = 2000;
+  static const String _currentTier = 'Thành viên Bạc';
+  static const String _nextTier = 'Thành viên Vàng';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookings();
+  }
+
+  Future<void> _loadBookings() async {
+    if (!mounted) return;
+    setState(() => _loadingBookings = true);
+    try {
+      final bookings = await ApiService.getMyBookings();
+      if (!mounted) return;
+      setState(() { _bookings = bookings; _loadingBookings = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingBookings = false);
+    }
+  }
 
   String _fmt(int p) {
     final s = p.toString();
@@ -32,7 +64,6 @@ class ProfileScreen extends StatelessWidget {
           CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _buildHeader(context)),
-              SliverToBoxAdapter(child: _buildPointsCard()),
               SliverToBoxAdapter(child: _buildTicketsSection(context)),
               SliverToBoxAdapter(child: _buildSettingsSection()),
               SliverToBoxAdapter(child: _buildLogoutRow(context)),
@@ -63,6 +94,12 @@ class ProfileScreen extends StatelessWidget {
   // ── Header ──────────────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context) {
+    final user = ApiService.currentUser;
+    final name = user?.fullName ?? 'Người dùng';
+    final email = user?.email ?? '';
+    final initials = user?.initials ?? 'U';
+    final memberSince = user?.memberSinceLabel ?? 'Tháng 01, 2025';
+
     return Stack(
       children: [
         // Decorative orb
@@ -111,8 +148,8 @@ class ProfileScreen extends StatelessWidget {
                         border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 2.5),
                         boxShadow: [BoxShadow(color: const Color(0xFFE50914).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 6))],
                       ),
-                      child: const Center(
-                        child: Text('LT', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      child: Center(
+                        child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 1)),
                       ),
                     ),
                     Container(
@@ -129,124 +166,17 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 14),
 
                 // Name & email
-                Text(mockUserName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(name, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(mockUserEmail, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
+                Text(email, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
                 const SizedBox(height: 12),
-
-                // Tier badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC0C0C0).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFC0C0C0).withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.star, size: 12, color: Colors.grey.shade300),
-                      const SizedBox(width: 5),
-                      Text(mockCurrentTier, style: TextStyle(color: Colors.grey.shade300, fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
                 const SizedBox(height: 5),
-                Text('Thành viên từ $mockMemberSince', style: TextStyle(color: Colors.white.withValues(alpha: 0.28), fontSize: 11)),
+                Text('Thành viên từ $memberSince', style: TextStyle(color: Colors.white.withValues(alpha: 0.28), fontSize: 11)),
               ],
             ),
           ),
         ),
       ],
-    );
-  }
-
-  // ── Points card ─────────────────────────────────────────────
-
-  Widget _buildPointsCard() {
-    final fraction = mockUserPoints / mockTierPoints;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFFB300).withValues(alpha: 0.12),
-                  const Color(0xFFFF6F00).withValues(alpha: 0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFFFB300).withValues(alpha: 0.28)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 42, height: 42,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFFFB300).withValues(alpha: 0.12),
-                        border: Border.all(color: const Color(0xFFFFB300).withValues(alpha: 0.35)),
-                      ),
-                      child: const Icon(LucideIcons.star, size: 20, color: Color(0xFFFFB300)),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Điểm thưởng', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12)),
-                        const Text('1.250 điểm', style: TextStyle(color: Color(0xFFFFB300), fontSize: 24, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFB300).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFFFB300).withValues(alpha: 0.2)),
-                      ),
-                      child: const Text('125 xu', style: TextStyle(color: Color(0xFFFFB300), fontSize: 12, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(mockCurrentTier, style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
-                    Text(mockNextTier, style: const TextStyle(color: Color(0xFFFFD700), fontSize: 11)),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: fraction,
-                    minHeight: 7,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFB300)),
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  'Còn ${mockTierPoints - mockUserPoints} điểm để đạt $mockNextTier',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.38), fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -268,10 +198,28 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          ...mockTickets.map((t) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _TicketCard(ticket: t, fmt: _fmt),
-          )),
+          if (_loadingBookings)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFE50914)),
+              ),
+            )
+          else if (_bookings.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text(
+                  'Chưa có vé nào',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13),
+                ),
+              ),
+            )
+          else
+            ..._bookings.take(3).map((t) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _TicketCard(ticket: t, fmt: _fmt),
+            )),
         ],
       ),
     );
@@ -461,6 +409,8 @@ class ProfileScreen extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
+                            ApiService.token = null;
+                            ApiService.currentUser = null;
                             Navigator.pop(ctx);
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -544,7 +494,7 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _TicketCard extends StatelessWidget {
-  final MockTicket ticket;
+  final BookingRecord ticket;
   final String Function(int) fmt;
   const _TicketCard({required this.ticket, required this.fmt});
 
@@ -623,16 +573,16 @@ class _TicketCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: (t.upcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50)).withValues(alpha: 0.12),
+                        color: (t.isUpcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50)).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: (t.upcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50)).withValues(alpha: 0.35),
+                          color: (t.isUpcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50)).withValues(alpha: 0.35),
                         ),
                       ),
                       child: Text(
-                        t.upcoming ? 'Sắp tới' : 'Đã xem',
+                        t.isUpcoming ? 'Sắp tới' : 'Đã xem',
                         style: TextStyle(
-                          color: t.upcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50),
+                          color: t.isUpcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50),
                           fontSize: 10, fontWeight: FontWeight.w600,
                         ),
                       ),

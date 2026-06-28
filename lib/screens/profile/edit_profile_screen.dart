@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_profile.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -27,9 +27,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameCtrl  = TextEditingController(text: mockUserName);
-    _emailCtrl = TextEditingController(text: mockUserEmail);
-    _phoneCtrl = TextEditingController(text: '0901234567');
+    _nameCtrl  = TextEditingController(text: ApiService.currentUser?.fullName ?? '');
+    _emailCtrl = TextEditingController(text: ApiService.currentUser?.email ?? '');
+    _phoneCtrl = TextEditingController(text: ApiService.currentUser?.phone ?? '');
   }
 
   @override
@@ -366,8 +366,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 2.5),
                 boxShadow: [BoxShadow(color: const Color(0xFFE50914).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 6))],
               ),
-              child: const Center(
-                child: Text('LT', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+              child: Center(
+                child: Text(
+                  ApiService.currentUser?.initials ?? 'U',
+                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             Container(

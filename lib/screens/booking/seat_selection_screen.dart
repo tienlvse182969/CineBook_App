@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_showtimes.dart';
 import 'package:ve_xem_phim/models/booking_info.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/models/showtime.dart';
@@ -41,11 +40,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   late List<DateTime> _dates;
   late DateTime _selectedDate;
   List<ShowtimeData> _allApiShowtimes = [];
-  late List<ShowtimeData> _showtimes;
-  late ShowtimeData _selectedShowtime;
-  late List<List<_Seat>> _rows;
-  bool _loadingShowtimes = false;
+  List<ShowtimeData> _showtimes = [];
+  ShowtimeData? _selectedShowtime;
+  List<List<_Seat>> _rows = [];
+  bool _loadingShowtimes = true;
   bool _loadingSeats = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -53,15 +53,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final today = DateTime.now();
     _dates = List.generate(7, (i) => DateTime(today.year, today.month, today.day + i));
     _selectedDate = _dates[0];
-    _showtimes = showtimesFor(_selectedDate);
-    _selectedShowtime = _showtimes[0];
-    _rows = _buildRows(_selectedShowtime.bookedSeats);
+    _rows = _buildRows([]);
     _loadApiShowtimes();
   }
 
   // ── Seat generation ─────────────────────────────────────────
 
   List<List<_Seat>> _buildRows(List<String> bookedSeats) {
+    final basePrice = _selectedShowtime?.price ?? 75000;
     final bookedSet = bookedSeats.toSet();
     return _rowLabels.map((row) {
       final isVip = _vipRows.contains(row);
@@ -75,13 +74,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               : (isVip ? _SeatType.vip : _SeatType.regular),
           price: bookedSet.contains(label)
               ? 0
-              : (isVip ? (_selectedShowtime.price * 1.25).round() : _selectedShowtime.price),
+              : (isVip ? (basePrice * 1.25).round() : basePrice),
         );
       });
     }).toList();
   }
 
   List<List<_Seat>> _buildRowsFromApiSeats(List<ApiSeat> seats) {
+    final basePrice = _selectedShowtime?.price ?? 75000;
     final byLabel = {for (final seat in seats) seat.label: seat};
     return _rowLabels.map((row) {
       return List.generate(_cols, (ci) {
@@ -100,7 +100,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           type: type,
           price: type == _SeatType.booked
               ? 0
-              : (type == _SeatType.vip ? (_selectedShowtime.price * 1.25).round() : _selectedShowtime.price),
+              : (type == _SeatType.vip ? (basePrice * 1.25).round() : basePrice),
         );
       });
     }).toList();
@@ -109,24 +109,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   // ── Selection handlers ──────────────────────────────────────
 
   void _selectDate(DateTime date) {
-    final times = widget.movie.id == null
-        ? showtimesFor(date)
-        : _allApiShowtimes.where((time) => _sameDay(time.startTime ?? date, date)).toList();
-    if (times.isEmpty) {
-      setState(() {
-        _selectedDate = date;
-        _showtimes = [];
-        _rows = _buildRows(const []);
-      });
-      return;
-    }
+    final times = _allApiShowtimes
+        .where((t) => _sameDay(t.startTime ?? date, date))
+        .toList();
     setState(() {
       _selectedDate = date;
       _showtimes = times;
-      _selectedShowtime = times[0];
-      _rows = _buildRows(times[0].bookedSeats);
+      _selectedShowtime = times.isEmpty ? null : times[0];
+      _rows = _buildRows(times.isEmpty ? [] : times[0].bookedSeats);
     });
-    _loadSeatsForSelected();
+    if (_selectedShowtime != null) _loadSeatsForSelected();
   }
 
   void _selectShowtime(ShowtimeData showtime) {
@@ -139,41 +131,42 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   Future<void> _loadApiShowtimes() async {
     final movieId = widget.movie.id;
-    if (movieId == null) return;
-    setState(() => _loadingShowtimes = true);
+    if (movieId == null) {
+      setState(() { _loadingShowtimes = false; _hasError = true; });
+      return;
+    }
+    setState(() { _loadingShowtimes = true; _hasError = false; });
     try {
       final times = await ApiService.getShowtimes(movieId: movieId);
-      if (!mounted || times.isEmpty) return;
+      if (!mounted) return;
       final dates = times
-          .map((time) => time.startTime)
+          .map((t) => t.startTime)
           .whereType<DateTime>()
-          .map((date) => DateTime(date.year, date.month, date.day))
+          .map((d) => DateTime(d.year, d.month, d.day))
           .toSet()
           .toList()
         ..sort();
+      final firstDate = dates.isEmpty ? _selectedDate : dates[0];
+      final firstShowtimes = times
+          .where((t) => _sameDay(t.startTime ?? firstDate, firstDate))
+          .toList();
       setState(() {
         _allApiShowtimes = times;
         _dates = dates.isEmpty ? _dates : dates;
-        _selectedDate = _dates[0];
-        _showtimes = times.where((time) => _sameDay(time.startTime ?? _selectedDate, _selectedDate)).toList();
-        _selectedShowtime = _showtimes[0];
+        _selectedDate = firstDate;
+        _showtimes = firstShowtimes;
+        _selectedShowtime = firstShowtimes.isEmpty ? null : firstShowtimes[0];
+        _loadingShowtimes = false;
       });
-      await _loadSeatsForSelected();
+      if (_selectedShowtime != null) await _loadSeatsForSelected();
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _showtimes = showtimesFor(_selectedDate);
-          _selectedShowtime = _showtimes[0];
-          _rows = _buildRows(_selectedShowtime.bookedSeats);
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _loadingShowtimes = false);
+      if (mounted) setState(() { _loadingShowtimes = false; _hasError = true; });
     }
   }
 
   Future<void> _loadSeatsForSelected() async {
-    final showtimeId = _selectedShowtime.id;
+    final showtime = _selectedShowtime;
+    final showtimeId = showtime?.id;
     if (showtimeId == null) return;
     setState(() => _loadingSeats = true);
     try {
@@ -181,7 +174,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       if (!mounted) return;
       setState(() => _rows = _buildRowsFromApiSeats(seats));
     } catch (_) {
-      if (mounted) setState(() => _rows = _buildRows(_selectedShowtime.bookedSeats));
+      if (mounted) setState(() => _rows = _buildRows(showtime?.bookedSeats ?? []));
     } finally {
       if (mounted) setState(() => _loadingSeats = false);
     }
@@ -212,11 +205,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   String _priceBreakdown(List<_Seat> seats) {
+    final basePrice = _selectedShowtime?.price ?? 75000;
     final regular = seats.where((s) => s.type == _SeatType.regular).length;
     final vip = seats.where((s) => s.type == _SeatType.vip).length;
     final parts = <String>[];
-    if (regular > 0) parts.add('$regular × ${_fmt(_selectedShowtime.price)}');
-    if (vip > 0) parts.add('$vip × ${_fmt((_selectedShowtime.price * 1.25).round())}');
+    if (regular > 0) parts.add('$regular × ${_fmt(basePrice)}');
+    if (vip > 0) parts.add('$vip × ${_fmt((basePrice * 1.25).round())}');
     return parts.join('  +  ');
   }
 
@@ -346,6 +340,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   void _navigateToSnacks(BuildContext context) {
+    final showtime = _selectedShowtime;
+    if (showtime == null) return;
     final selected = _selected;
     Navigator.push(
       context,
@@ -354,7 +350,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           booking: BookingInfo(
             movie: widget.movie,
             date: _selectedDate,
-            showtime: _selectedShowtime,
+            showtime: showtime,
             seatLabels: selected.map((s) => s.label).toList(),
             seatIds: selected.map((s) => s.id).whereType<int>().toList(),
             regularCount: selected.where((s) => s.type == _SeatType.regular).length,
@@ -523,9 +519,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         children: _dates.map((date) {
           final isSelected = _sameDay(date, _selectedDate);
           final isToday = _sameDay(date, today);
-          // Average busyness across all showtimes for this date
-          final times = showtimesFor(date);
-          final avgFraction = times.map((t) => t.bookedFraction).reduce((a, b) => a + b) / times.length;
+          final times = _allApiShowtimes.where((t) => _sameDay(t.startTime ?? date, date)).toList();
+          final avgFraction = times.isEmpty
+              ? 0.2
+              : times.map((t) => t.bookedFraction).fold(0.0, (a, b) => a + b) / times.length;
 
           return Expanded(
             child: Padding(
@@ -604,14 +601,24 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         ),
         SizedBox(
           height: 50,
-          child: ListView.separated(
+          child: _showtimes.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Center(
+                    child: Text(
+                      _hasError ? 'Không thể tải suất chiếu' : 'Không có suất chiếu cho ngày này',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
+                    ),
+                  ),
+                )
+              : ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             itemCount: _showtimes.length,
             separatorBuilder: (_, i) => const SizedBox(width: 8),
             itemBuilder: (context, i) {
               final showtime = _showtimes[i];
-              final isSelected = showtime.time == _selectedShowtime.time;
+              final isSelected = showtime.time == _selectedShowtime?.time && showtime.hall == _selectedShowtime?.hall;
               final isSoldOut = showtime.isSoldOut;
               final dot = _dotColor(showtime.bookedFraction);
 
@@ -819,29 +826,33 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 Icon(LucideIcons.calendarCheck, size: 12, color: Colors.white.withValues(alpha: 0.35)),
                 const SizedBox(width: 5),
                 Text(
-                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}  ·  ${_selectedShowtime.time}',
+                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}  ·  ${_selectedShowtime?.time ?? '--:--'}',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11),
                 ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                if (_selectedShowtime != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Text(
+                      _selectedShowtime!.hall,
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 10),
+                    ),
                   ),
-                  child: Text(
-                    _selectedShowtime.hall,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 10),
-                  ),
-                ),
+                ],
               ]),
               const SizedBox(height: 4),
               Row(children: [
                 Icon(LucideIcons.ticket, size: 11, color: Colors.white.withValues(alpha: 0.25)),
                 const SizedBox(width: 5),
                 Text(
-                  '${_selectedShowtime.availableSeats} ghế còn trống',
+                  _selectedShowtime != null
+                      ? '${_selectedShowtime!.availableSeats} ghế còn trống'
+                      : 'Chưa chọn suất chiếu',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.28), fontSize: 10),
                 ),
               ]),

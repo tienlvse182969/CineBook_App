@@ -1,16 +1,43 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_profile.dart';
+import 'package:ve_xem_phim/models/booking_record.dart';
 import 'package:ve_xem_phim/screens/profile/ticket_detail_screen.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 
-class MyTicketsScreen extends StatelessWidget {
+class MyTicketsScreen extends StatefulWidget {
   const MyTicketsScreen({super.key});
 
   @override
+  State<MyTicketsScreen> createState() => _MyTicketsScreenState();
+}
+
+class _MyTicketsScreenState extends State<MyTicketsScreen> {
+  List<BookingRecord> _bookings = [];
+  bool _loading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookings();
+  }
+
+  Future<void> _loadBookings() async {
+    setState(() { _loading = true; _hasError = false; });
+    try {
+      final bookings = await ApiService.getMyBookings();
+      if (!mounted) return;
+      setState(() { _bookings = bookings; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _hasError = true; });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final upcoming = mockTickets.where((t) => t.upcoming).toList();
-    final watched  = mockTickets.where((t) => !t.upcoming).toList();
+    final upcoming = _bookings.where((t) => t.isUpcoming).toList();
+    final watched  = _bookings.where((t) => !t.isUpcoming).toList();
 
     return DefaultTabController(
       length: 2,
@@ -26,17 +53,47 @@ class MyTicketsScreen extends StatelessWidget {
                 _buildTabBar(),
                 const SizedBox(height: 4),
                 Expanded(
-                  child: TabBarView(
-                    children: [
-                      _TicketList(tickets: upcoming, emptyLabel: 'Không có vé sắp tới'),
-                      _TicketList(tickets: watched,  emptyLabel: 'Chưa có vé nào đã xem'),
-                    ],
-                  ),
+                  child: _loading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFE50914),
+                          ),
+                        )
+                      : _hasError
+                          ? _buildError()
+                          : TabBarView(
+                              children: [
+                                _TicketList(tickets: upcoming, emptyLabel: 'Không có vé sắp tới'),
+                                _TicketList(tickets: watched,  emptyLabel: 'Chưa có vé nào đã xem'),
+                              ],
+                            ),
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.wifiOff, size: 40, color: Colors.white.withValues(alpha: 0.2)),
+          const SizedBox(height: 14),
+          Text(
+            'Không tải được vé',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: _loadBookings,
+            child: const Text('Thử lại', style: TextStyle(color: Color(0xFFE50914))),
+          ),
+        ],
       ),
     );
   }
@@ -130,7 +187,7 @@ class MyTicketsScreen extends StatelessWidget {
 // ── Ticket list ──────────────────────────────────────────────────
 
 class _TicketList extends StatelessWidget {
-  final List<MockTicket> tickets;
+  final List<BookingRecord> tickets;
   final String emptyLabel;
   const _TicketList({required this.tickets, required this.emptyLabel});
 
@@ -167,7 +224,7 @@ class _TicketList extends StatelessWidget {
 // ── Ticket card ──────────────────────────────────────────────────
 
 class _TicketCard extends StatelessWidget {
-  final MockTicket ticket;
+  final BookingRecord ticket;
   final VoidCallback onTap;
   const _TicketCard({required this.ticket, required this.onTap});
 
@@ -184,8 +241,8 @@ class _TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = ticket;
-    final statusColor = t.upcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50);
-    final statusLabel = t.upcoming ? 'Sắp tới' : 'Đã xem';
+    final statusColor = t.isUpcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50);
+    final statusLabel = t.isUpcoming ? 'Sắp tới' : 'Đã xem';
 
     return GestureDetector(
       onTap: onTap,
