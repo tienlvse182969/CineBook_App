@@ -220,7 +220,11 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.clapperboard, color: Color(0xFFE50914), size: 20),
+                  const Icon(
+                    LucideIcons.clapperboard,
+                    color: Color(0xFFE50914),
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'CineBook',
@@ -236,7 +240,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 2),
               Text(
                 'Chào mừng trở lại!',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -264,7 +271,10 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.13), width: 1.5),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.13),
+                width: 1.5,
+              ),
             ),
             child: TextField(
               controller: _searchController,
@@ -369,7 +379,8 @@ class _MovieCarouselState extends State<_MovieCarousel> {
   late final PageController _controller;
   Timer? _timer;
 
-  int get _initialVirtualPage => widget.movies.length * (_virtualMultiplier ~/ 2);
+  int get _initialVirtualPage =>
+      widget.movies.length * (_virtualMultiplier ~/ 2);
 
   @override
   void initState() {
@@ -406,7 +417,8 @@ class _MovieCarouselState extends State<_MovieCarousel> {
           child: PageView.builder(
             controller: _controller,
             itemCount: widget.movies.length * _virtualMultiplier,
-            onPageChanged: (i) => setState(() => _realIndex = i % widget.movies.length),
+            onPageChanged: (i) =>
+                setState(() => _realIndex = i % widget.movies.length),
             itemBuilder: (context, i) {
               final idx = i % widget.movies.length;
               return AnimatedScale(
@@ -440,7 +452,9 @@ class _MovieCarouselState extends State<_MovieCarousel> {
           height: 6,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(3),
-            color: isActive ? const Color(0xFFE50914) : Colors.white.withValues(alpha: 0.22),
+            color: isActive
+                ? const Color(0xFFE50914)
+                : Colors.white.withValues(alpha: 0.22),
           ),
         );
       }),
@@ -702,7 +716,11 @@ class _InfoChip extends StatelessWidget {
   final String label;
   final bool highlight;
 
-  const _InfoChip({required this.icon, required this.label, this.highlight = false});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {

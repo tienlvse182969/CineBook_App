@@ -12,7 +12,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   int _currentStep = 0;
-  String _verifyMethod = 'otp';
   bool _isSubmitting = false;
 
   final _emailController = TextEditingController();
@@ -22,8 +21,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   DateTime? _birthDate;
 
-  final List<TextEditingController> _otpControllers =
-      List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _otpControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
 
   final _step1FormKey = GlobalKey<FormState>();
@@ -35,8 +36,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    for (final c in _otpControllers) { c.dispose(); }
-    for (final f in _otpFocusNodes) { f.dispose(); }
+    for (final c in _otpControllers) {
+      c.dispose();
+    }
+    for (final f in _otpFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -65,7 +70,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _currentStep = 1);
       }
     } else if (_currentStep == 1) {
-      setState(() => _currentStep = 2);
+      setState(() => _isSubmitting = true);
+      try {
+        await ApiService.requestRegistrationOtp(_emailController.text);
+        if (mounted) setState(() => _currentStep = 2);
+      } catch (error) {
+        _showError(error);
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
     } else {
       await _register();
     }
@@ -73,6 +86,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     if (_birthDate == null) return;
+    final otp = _otpControllers.map((controller) => controller.text).join();
+    if (otp.length != 6) {
+      _showError(Exception('Vui lòng nhập đủ 6 số xác thực'));
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
       await ApiService.register(
@@ -81,20 +99,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
         dateOfBirth: _birthDate!,
+        otp: otp,
       );
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString().replaceFirst('Exception: ', '')),
-            backgroundColor: const Color(0xFFE50914),
-          ),
-        );
-      }
+      _showError(error);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _showError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString().replaceFirst('Exception: ', '')),
+        backgroundColor: const Color(0xFFE50914),
+      ),
+    );
   }
 
   void _back() {
@@ -168,7 +190,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             const Text(
               'Thông tin cá nhân',
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 20),
             GlassInput(
@@ -190,7 +216,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               prefixIcon: LucideIcons.phone,
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              validator: (v) => v?.isEmpty == true ? 'Vui lòng nhập số điện thoại' : null,
+              validator: (v) =>
+                  v?.isEmpty == true ? 'Vui lòng nhập số điện thoại' : null,
             ),
             const SizedBox(height: 14),
             GlassInput(
@@ -198,7 +225,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               hint: 'username',
               prefixIcon: LucideIcons.user,
               controller: _usernameController,
-              validator: (v) => v?.isEmpty == true ? 'Vui lòng nhập tên đăng nhập' : null,
+              validator: (v) =>
+                  v?.isEmpty == true ? 'Vui lòng nhập tên đăng nhập' : null,
             ),
             const SizedBox(height: 14),
             GlassInput(
@@ -244,46 +272,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           const Text(
             'Phương thức xác thực',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Chọn cách bạn muốn xác thực tài khoản',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 24),
-          _VerifyOption(
+          const _VerifyOption(
             icon: LucideIcons.mail,
             title: 'OTP qua Email',
             subtitle: 'Nhận mã 6 số về email đăng ký',
-            selected: _verifyMethod == 'otp',
-            onTap: () => setState(() => _verifyMethod = 'otp'),
-          ),
-          const SizedBox(height: 12),
-          _VerifyOption(
-            icon: LucideIcons.shieldCheck,
-            title: 'Captcha',
-            subtitle: 'Xác thực bằng hình ảnh captcha',
-            selected: _verifyMethod == 'captcha',
-            onTap: () => setState(() => _verifyMethod = 'captcha'),
-          ),
-          const SizedBox(height: 12),
-          _VerifyOption(
-            icon: LucideIcons.fingerprint,
-            title: 'Vân tay',
-            subtitle: 'Xác thực và đăng nhập bằng sinh trắc học',
-            selected: _verifyMethod == 'fingerprint',
-            onTap: () => setState(() => _verifyMethod = 'fingerprint'),
+            selected: true,
           ),
           const SizedBox(height: 24),
-          GlassPrimaryButton(label: 'Tiếp theo', onPressed: _next),
+          GlassPrimaryButton(
+            label: 'Gửi mã xác thực',
+            onPressed: _isSubmitting ? null : _next,
+            isLoading: _isSubmitting,
+          ),
         ],
       ),
     );
   }
 
   Widget _buildStep3() {
-    final target = _emailController.text.isNotEmpty ? _emailController.text : 'email của bạn';
+    final target = _emailController.text.isNotEmpty
+        ? _emailController.text
+        : 'email của bạn';
     return GlassCard(
       key: const ValueKey(2),
       child: Column(
@@ -291,27 +315,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           const Text(
             'Nhập mã xác thực',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Mã OTP đã được gửi đến $target',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 32),
           OtpInput(controllers: _otpControllers, focusNodes: _otpFocusNodes),
           const SizedBox(height: 20),
           Center(
             child: TextButton(
-              onPressed: () {},
+              onPressed: _isSubmitting
+                  ? null
+                  : () async {
+                      setState(() => _isSubmitting = true);
+                      try {
+                        await ApiService.requestRegistrationOtp(
+                          _emailController.text,
+                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã gửi lại mã xác thực'),
+                            ),
+                          );
+                        }
+                      } catch (error) {
+                        _showError(error);
+                      } finally {
+                        if (mounted) setState(() => _isSubmitting = false);
+                      }
+                    },
               child: RichText(
                 text: TextSpan(
                   text: 'Không nhận được mã? ',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontSize: 13,
+                  ),
                   children: const [
                     TextSpan(
                       text: 'Gửi lại',
-                      style: TextStyle(color: Color(0xFFE50914), fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: Color(0xFFE50914),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -335,73 +392,79 @@ class _VerifyOption extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool selected;
-  final VoidCallback onTap;
 
   const _VerifyOption({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.selected,
-    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: selected
+            ? const Color(0xFFE50914).withValues(alpha: 0.12)
+            : Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
           color: selected
-              ? const Color(0xFFE50914).withValues(alpha: 0.12)
-              : Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? const Color(0xFFE50914).withValues(alpha: 0.6)
-                : Colors.white.withValues(alpha: 0.1),
-            width: 1.5,
+              ? const Color(0xFFE50914).withValues(alpha: 0.6)
+              : Colors.white.withValues(alpha: 0.1),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: selected
+                  ? const Color(0xFFE50914).withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.07),
+            ),
+            child: Icon(
+              icon,
+              color: selected ? const Color(0xFFE50914) : Colors.white54,
+              size: 22,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected
-                    ? const Color(0xFFE50914).withValues(alpha: 0.18)
-                    : Colors.white.withValues(alpha: 0.07),
-              ),
-              child: Icon(icon, color: selected ? const Color(0xFFE50914) : Colors.white54, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: selected ? Colors.white : Colors.white70,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: selected ? Colors.white : Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.38), fontSize: 12),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.38),
+                    fontSize: 12,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            if (selected)
-              const Icon(LucideIcons.checkCircle, color: Color(0xFFE50914), size: 20),
-          ],
-        ),
+          ),
+          if (selected)
+            const Icon(
+              LucideIcons.checkCircle,
+              color: Color(0xFFE50914),
+              size: 20,
+            ),
+        ],
       ),
     );
   }
