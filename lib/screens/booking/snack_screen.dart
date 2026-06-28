@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_snacks.dart';
 import 'package:ve_xem_phim/models/booking_info.dart';
 import 'package:ve_xem_phim/models/payment_info.dart';
 import 'package:ve_xem_phim/models/snack.dart';
@@ -19,8 +18,9 @@ class SnackScreen extends StatefulWidget {
 
 class _SnackScreenState extends State<SnackScreen> {
   final Map<int, int> _qty = {};
-  List<SnackCategory> _categories = snackCategories;
-  bool _loading = false;
+  List<SnackCategory> _categories = [];
+  bool _loading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -29,16 +29,13 @@ class _SnackScreenState extends State<SnackScreen> {
   }
 
   Future<void> _loadSnacks() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _hasError = false; });
     try {
       final categories = await ApiService.getSnackCategories();
-      if (mounted && categories.isNotEmpty) {
-        setState(() => _categories = categories);
-      }
+      if (!mounted) return;
+      setState(() { _categories = categories; _loading = false; });
     } catch (_) {
-      if (mounted) setState(() => _categories = snackCategories);
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() { _loading = false; _hasError = true; });
     }
   }
 
@@ -132,14 +129,42 @@ class _SnackScreenState extends State<SnackScreen> {
                 ),
               const SizedBox(height: 8),
               Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.fromLTRB(
-                    16, 8, 16,
-                    MediaQuery.of(context).padding.bottom + 240,
-                  ),
-                  itemCount: _categories.length,
-                  itemBuilder: (_, i) => _buildCategory(_categories[i]),
-                ),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)))
+                    : _hasError
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 48),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Không thể tải danh sách đồ ăn',
+                                  style: TextStyle(color: Colors.white54, fontSize: 14),
+                                ),
+                                const SizedBox(height: 12),
+                                TextButton(
+                                  onPressed: _loadSnacks,
+                                  child: const Text('Thử lại', style: TextStyle(color: Color(0xFFE50914))),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _categories.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'Hiện không có đồ ăn nào',
+                                  style: TextStyle(color: Colors.white38, fontSize: 14),
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: EdgeInsets.fromLTRB(
+                                  16, 8, 16,
+                                  MediaQuery.of(context).padding.bottom + 240,
+                                ),
+                                itemCount: _categories.length,
+                                itemBuilder: (_, i) => _buildCategory(_categories[i]),
+                              ),
               ),
             ],
           ),
@@ -373,11 +398,6 @@ class _SnackScreenState extends State<SnackScreen> {
                         fontSize: 14,
                         fontWeight: hasQty ? FontWeight.w600 : FontWeight.w500,
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item.description,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.38), fontSize: 11),
                     ),
                     const SizedBox(height: 5),
                     Text(
