@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:ve_xem_phim/models/booking_record.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/models/showtime.dart';
 import 'package:ve_xem_phim/models/snack.dart';
+import 'package:ve_xem_phim/models/user_profile.dart';
 
 class ApiService {
   ApiService._();
@@ -14,6 +16,7 @@ class ApiService {
   );
 
   static String? token;
+  static UserProfile? currentUser;
 
   static Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -78,6 +81,10 @@ class ApiService {
       'password': password,
     });
     token = json['token']?.toString();
+    final userJson = json['user'];
+    if (userJson is Map<String, dynamic>) {
+      currentUser = UserProfile.fromJson(userJson);
+    }
   }
 
   static Future<void> register({
@@ -97,12 +104,21 @@ class ApiService {
       'otp': otp,
     });
     token = json['token']?.toString();
+    final userJson2 = json['user'];
+    if (userJson2 is Map<String, dynamic>) {
+      currentUser = UserProfile.fromJson(userJson2);
+    }
   }
 
   static Future<void> requestRegistrationOtp(String email) async {
     await _postJson(Uri.parse('$baseUrl/api/auth/register/request-otp'), {
       'email': email.trim(),
     });
+  }
+
+  static Future<List<BookingRecord>> getMyBookings() async {
+    final data = await _getList(Uri.parse('$baseUrl/api/bookings/me'));
+    return data.map(BookingRecord.fromJson).toList();
   }
 
   static Future<Map<String, dynamic>> createBooking({
