@@ -2,9 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:ve_xem_phim/models/booking_record.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/models/showtime.dart';
 import 'package:ve_xem_phim/models/snack.dart';
+import 'package:ve_xem_phim/models/user_profile.dart';
 
 class ApiService {
   ApiService._();
@@ -18,11 +20,12 @@ class ApiService {
 
   static String? token;
   static String? userRole;
+  static UserProfile? currentUser;
 
   static Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
+    'Content-Type': 'application/json',
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
 
   // ─── Auth ───────────────────────────────────────────────────────────────────
 
@@ -32,9 +35,12 @@ class ApiService {
       'password': password,
     });
     token = json['token']?.toString();
-    userRole = json['user']?['role']?.toString() ?? 'USER';
+    userRole = (json['user']?['role']?.toString() ?? 'user').toUpperCase();
     return userRole!;
   }
+
+  static Future<void> requestRegistrationOtp(String email) =>
+      _postJson(Uri.parse('$baseUrl/api/auth/register/request-otp'), {'email': email});
 
   static Future<void> register({
     required String fullName,
@@ -42,6 +48,7 @@ class ApiService {
     required String phone,
     required String password,
     required DateTime dateOfBirth,
+    required String otp,
   }) async {
     final json = await _postJson(Uri.parse('$baseUrl/api/auth/register'), {
       'full_name': fullName,
@@ -49,6 +56,7 @@ class ApiService {
       'phone': phone.isEmpty ? null : phone,
       'password': password,
       'date_of_birth': _dateOnly(dateOfBirth),
+      'otp': otp,
     });
     token = json['token']?.toString();
     userRole = json['user']?['role']?.toString() ?? 'USER';
@@ -62,9 +70,9 @@ class ApiService {
   // ─── Movies ─────────────────────────────────────────────────────────────────
 
   static Future<List<Movie>> getMovies({String? status}) async {
-    final uri = Uri.parse('$baseUrl/api/movies').replace(
-      queryParameters: status == null ? null : {'status': status},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/api/movies',
+    ).replace(queryParameters: status == null ? null : {'status': status});
     final data = await _getList(uri);
     return data.map((item) => Movie.fromJson(item)).toList();
   }
@@ -81,9 +89,9 @@ class ApiService {
   // ─── Showtimes ──────────────────────────────────────────────────────────────
 
   static Future<List<ShowtimeData>> getShowtimes({required int movieId}) async {
-    final uri = Uri.parse('$baseUrl/api/showtimes').replace(
-      queryParameters: {'movie_id': '$movieId'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/api/showtimes',
+    ).replace(queryParameters: {'movie_id': '$movieId'});
     final data = await _getList(uri);
     return data.map((item) => ShowtimeData.fromJson(item)).toList();
   }
@@ -122,13 +130,20 @@ class ApiService {
   // ─── Snacks ─────────────────────────────────────────────────────────────────
 
   static Future<List<SnackCategory>> getSnackCategories() async {
-    final data = await _getList(Uri.parse('$baseUrl/api/snacks?status=AVAILABLE'));
-    final items = data.map(SnackItem.fromJson).where((item) => item.id > 0).toList();
+    final data = await _getList(
+      Uri.parse('$baseUrl/api/snacks?status=AVAILABLE'),
+    );
+    final items = data
+        .map(SnackItem.fromJson)
+        .where((item) => item.id > 0)
+        .toList();
     final groups = <String, List<SnackItem>>{};
     for (final item in items) {
       groups.putIfAbsent(_categoryName(item.type), () => []).add(item);
     }
-    return groups.entries.map((entry) => SnackCategory(name: entry.key, items: entry.value)).toList();
+    return groups.entries
+        .map((entry) => SnackCategory(name: entry.key, items: entry.value))
+        .toList();
   }
 
   static Future<List<Map<String, dynamic>>> getAllSnacks() =>
@@ -143,7 +158,10 @@ class ApiService {
   static Future<void> deleteSnack(int id) =>
       _delete(Uri.parse('$baseUrl/api/snacks/$id'));
 
-  // ─── Booking ────────────────────────────────────────────────────────────────
+  static Future<List<BookingRecord>> getMyBookings() async {
+    final data = await _getList(Uri.parse('$baseUrl/api/bookings/my'));
+    return data.map(BookingRecord.fromJson).toList();
+  }
 
   static Future<Map<String, dynamic>> createBooking({
     required int showtimeId,
@@ -238,8 +256,15 @@ class ApiService {
     throw Exception('Unexpected response from $uri');
   }
 
-  static Future<Map<String, dynamic>> _postJson(Uri uri, Map<String, dynamic> body) async {
-    final response = await http.post(uri, headers: _headers, body: jsonEncode(body));
+  static Future<Map<String, dynamic>> _postJson(
+    Uri uri,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await http.post(
+      uri,
+      headers: _headers,
+      body: jsonEncode(body),
+    );
     final json = _decode(response);
     if (json is Map<String, dynamic>) return json;
     throw Exception('Unexpected response from $uri');
@@ -310,10 +335,10 @@ class ApiSeat {
   });
 
   factory ApiSeat.fromJson(Map<String, dynamic> json) => ApiSeat(
-        id: (json['seat_id'] as num?)?.toInt() ?? 0,
-        label: '${json['row_name']}${json['seat_number']}',
-        type: json['type']?.toString() ?? 'STANDARD',
-        physicalStatus: json['physical_status']?.toString() ?? 'ACTIVE',
-        bookingStatus: json['booking_status']?.toString() ?? 'AVAILABLE',
-      );
+    id: (json['seat_id'] as num?)?.toInt() ?? 0,
+    label: '${json['row_name']}${json['seat_number']}',
+    type: json['type']?.toString() ?? 'STANDARD',
+    physicalStatus: json['physical_status']?.toString() ?? 'ACTIVE',
+    bookingStatus: json['booking_status']?.toString() ?? 'AVAILABLE',
+  );
 }

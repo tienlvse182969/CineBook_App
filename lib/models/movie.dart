@@ -16,6 +16,7 @@ class Movie {
   final String ageRatingDesc;
   final String language;
   final String firstShowing;
+  final String? posterUrl;
   final String status;
 
   const Movie({
@@ -34,6 +35,7 @@ class Movie {
     required this.ageRatingDesc,
     required this.language,
     required this.firstShowing,
+    this.posterUrl,
     this.status = 'NOW_SHOWING',
   });
 
@@ -41,7 +43,9 @@ class Movie {
     final age = (json['age_restriction'] as num?)?.toInt() ?? 0;
     final duration = (json['duration_minutes'] as num?)?.toInt();
     final castJson = json['cast'];
-    final cast = castJson is List ? castJson.map((e) => e.toString()).toList() : <String>[];
+    final cast = castJson is List
+        ? castJson.map((e) => e.toString()).toList()
+        : <String>[];
 
     return Movie(
       id: (json['movie_id'] as num?)?.toInt(),
@@ -52,10 +56,17 @@ class Movie {
       duration: duration == null ? 'Đang cập nhật' : '$duration phút',
       year: _yearFromFirstShowing(json['first_showing']?.toString()),
       colors: [
-        _colorFromHex(json['color_primary']?.toString(), const Color(0xFF1A237E)),
-        _colorFromHex(json['color_secondary']?.toString(), const Color(0xFF880E4F)),
+        _colorFromHex(
+          json['color_primary']?.toString(),
+          const Color(0xFF1A237E),
+        ),
+        _colorFromHex(
+          json['color_secondary']?.toString(),
+          const Color(0xFF880E4F),
+        ),
       ],
       firstShowing: json['first_showing']?.toString() ?? 'Đang cập nhật',
+      posterUrl: _cleanUrl(json['poster_url']?.toString()),
       language: json['language']?.toString() ?? 'Đang cập nhật',
       ageRating: age == 0 ? 'P' : 'T$age',
       ageRatingDesc: age == 0
@@ -63,7 +74,9 @@ class Movie {
           : 'Phim được phổ biến đến người xem từ đủ $age tuổi trở lên.',
       director: json['director']?.toString() ?? 'Đang cập nhật',
       cast: cast,
-      description: json['description']?.toString() ?? 'Nội dung phim đang được cập nhật.',
+      description:
+          json['description']?.toString() ??
+          'Nội dung phim đang được cập nhật.',
       status: json['status']?.toString() ?? 'NOW_SHOWING',
     );
   }
@@ -79,5 +92,11 @@ class Movie {
     final hex = value.replaceFirst('#', '');
     if (hex.length != 6) return fallback;
     return Color(int.parse('FF$hex', radix: 16));
+  }
+
+  static String? _cleanUrl(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 }

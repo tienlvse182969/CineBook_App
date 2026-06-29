@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:ve_xem_phim/data/mock_profile.dart';
+import 'package:ve_xem_phim/models/booking_record.dart';
 
 class TicketDetailScreen extends StatelessWidget {
-  final MockTicket ticket;
+  final BookingRecord ticket;
   const TicketDetailScreen({super.key, required this.ticket});
 
   String _fmt(int p) {
@@ -17,16 +17,12 @@ class TicketDetailScreen extends StatelessWidget {
     return '${b.toString()} đ';
   }
 
-  // Booking code deterministic từ tên phim
-  String get _bookingCode {
-    final hash = ticket.movieTitle.codeUnits.fold(0, (a, b) => a + b) % 900000 + 100000;
-    return 'CB-2026-$hash';
-  }
+  String get _bookingCode => ticket.bookingCode;
 
   @override
   Widget build(BuildContext context) {
     final t = ticket;
-    final statusColor = t.upcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50);
+    final statusColor = t.isUpcoming ? const Color(0xFF2196F3) : const Color(0xFF4CAF50);
 
     return Scaffold(
       backgroundColor: const Color(0xFF080C14),
@@ -118,7 +114,7 @@ class TicketDetailScreen extends StatelessWidget {
 
   // ── Ticket card ──────────────────────────────────────────────
 
-  Widget _buildTicketCard(MockTicket t, Color statusColor) {
+  Widget _buildTicketCard(BookingRecord t, Color statusColor) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       child: ClipRRect(
@@ -156,7 +152,7 @@ class TicketDetailScreen extends StatelessWidget {
                               border: Border.all(color: statusColor.withValues(alpha: 0.5)),
                             ),
                             child: Text(
-                              t.upcoming ? 'Sắp tới' : 'Đã xem',
+                              t.isUpcoming ? 'Sắp tới' : 'Đã xem',
                               style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w600),
                             ),
                           ),

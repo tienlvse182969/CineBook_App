@@ -45,20 +45,109 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       body: LayoutBuilder(
         builder: (ctx, constraints) {
           final wide = constraints.maxWidth >= 680;
-          return Row(
-            children: [
-              _buildSidebar(wide),
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildTopBar(),
-                    Expanded(child: _screens[_idx]),
-                  ],
+          if (wide) {
+            return Row(
+              children: [
+                _buildSidebar(true),
+                Expanded(
+                  child: Column(
+                    children: [
+                      _buildTopBar(),
+                      Expanded(child: _screens[_idx]),
+                    ],
+                  ),
                 ),
-              ),
+              ],
+            );
+          }
+          // Mobile layout: top header + bottom nav
+          return Column(
+            children: [
+              _buildMobileHeader(),
+              Expanded(child: _screens[_idx]),
+              _buildBottomNav(),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildMobileHeader() {
+    final top = MediaQuery.of(context).padding.top;
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, top + 10, 16, 12),
+      decoration: const BoxDecoration(
+        color: Color(0xFF161B22),
+        border: Border(bottom: BorderSide(color: Color(0xFF21262D))),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFE50914).withValues(alpha: 0.12),
+              border: Border.all(color: const Color(0xFFE50914).withValues(alpha: 0.35)),
+            ),
+            child: const Icon(LucideIcons.clapperboard, color: Color(0xFFE50914), size: 18),
+          ),
+          const SizedBox(width: 12),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('CineBook Admin', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+              Text('Quản trị hệ thống', style: TextStyle(color: Color(0xFF8B949E), fontSize: 11)),
+            ],
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _confirmLogout,
+            child: const Icon(LucideIcons.logOut, color: Color(0xFF8B949E), size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF161B22),
+        border: Border(top: BorderSide(color: Color(0xFF21262D))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: List.generate(_nav.length, (i) {
+            final active = _idx == i;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _idx = i),
+                child: Container(
+                  color: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_nav[i].icon, size: 20,
+                          color: active ? const Color(0xFFE50914) : const Color(0xFF8B949E)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _nav[i].label.split(' ').first,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: active ? const Color(0xFFE50914) : const Color(0xFF8B949E),
+                          fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
