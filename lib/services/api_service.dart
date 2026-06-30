@@ -139,6 +139,39 @@ class ApiService {
     });
   }
 
+  /// Khởi tạo giao dịch thanh toán cho [bookingId] với một cổng cụ thể
+  /// (ví dụ 'MOMO'). Trả về `data` chứa orderId, payUrl, deeplink...
+  static Future<Map<String, dynamic>> createPayment({
+    required int bookingId,
+    required String paymentMethod,
+  }) async {
+    final json = await _postJson(Uri.parse('$baseUrl/api/payments/create'), {
+      'bookingId': bookingId,
+      'paymentMethod': paymentMethod,
+    });
+    final data = json['data'];
+    if (data is Map<String, dynamic>) return data;
+    throw Exception('Phản hồi khởi tạo thanh toán không hợp lệ');
+  }
+
+  /// Lấy trạng thái thanh toán theo orderId.
+  /// Trả về map gồm `payment_status` và `booking_status`.
+  static Future<Map<String, dynamic>> getPaymentStatus(String orderId) async {
+    final json = await _getJson(
+      Uri.parse('$baseUrl/api/payments/status/$orderId'),
+    );
+    final data = json['data'];
+    if (data is Map<String, dynamic>) return data;
+    throw Exception('Không lấy được trạng thái thanh toán');
+  }
+
+  static Future<Map<String, dynamic>> _getJson(Uri uri) async {
+    final response = await http.get(uri, headers: _headers);
+    final json = _decode(response);
+    if (json is Map<String, dynamic>) return json;
+    throw Exception('Unexpected response from $uri');
+  }
+
   static Future<List<Map<String, dynamic>>> _getList(Uri uri) async {
     final response = await http.get(uri, headers: _headers);
     final json = _decode(response);
