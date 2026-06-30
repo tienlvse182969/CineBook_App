@@ -16,6 +16,10 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_dotenv: ^5.1.0
 
+dependency_overrides:
+  url_launcher_android:
+    path: D:\flutter_plugins\url_launcher_android
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
