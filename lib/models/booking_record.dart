@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 
+class BookingSnackItem {
+  final String name;
+  final int qty;
+  final int unitPrice;
+  const BookingSnackItem({required this.name, required this.qty, this.unitPrice = 0});
+}
+
 class BookingRecord {
   final int id;
   final String movieTitle;
@@ -9,6 +16,7 @@ class BookingRecord {
   final String time;
   final String hall;
   final List<String> seats;
+  final List<BookingSnackItem> snacks;
   final int total;
   final String bookingStatus;
   final bool isUpcoming;
@@ -22,6 +30,7 @@ class BookingRecord {
     required this.time,
     required this.hall,
     required this.seats,
+    this.snacks = const [],
     required this.total,
     required this.bookingStatus,
     required this.isUpcoming,
@@ -56,6 +65,18 @@ class BookingRecord {
       return ['${seat['row_name']}${seat['seat_number']}'];
     }).toList();
 
+    final snacksJson = json['BookingSnacks'] as List<dynamic>? ?? [];
+    final snacks = snacksJson.map((s) {
+      final map = s as Map<String, dynamic>;
+      final snack = map['Snack'] as Map<String, dynamic>?;
+      final priceRaw = snack?['price'];
+      return BookingSnackItem(
+        name: snack?['name']?.toString() ?? '',
+        qty: (map['quantity'] as num?)?.toInt() ?? 1,
+        unitPrice: priceRaw is num ? priceRaw.round() : int.tryParse(priceRaw?.toString() ?? '') ?? 0,
+      );
+    }).where((s) => s.name.isNotEmpty).toList();
+
     final hex = (movieJson?['color_primary']?.toString() ?? '#1A237E')
         .replaceFirst('#', '');
     final color = hex.length == 6
@@ -76,6 +97,7 @@ class BookingRecord {
       time: time,
       hall: roomJson?['name']?.toString() ?? 'Phòng chiếu',
       seats: seats,
+      snacks: snacks,
       total: total,
       bookingStatus: json['booking_status']?.toString() ?? 'RESERVED',
       isUpcoming: isUpcoming,

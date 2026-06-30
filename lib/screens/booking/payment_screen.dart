@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ve_xem_phim/models/payment_info.dart';
 import 'package:ve_xem_phim/models/snack.dart';
 import 'package:ve_xem_phim/screens/booking/payment_success_screen.dart';
@@ -68,22 +70,101 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     setState(() => _isPaying = true);
     try {
-      await ApiService.createBooking(
+      final bookingResult = await ApiService.createBooking(
         showtimeId: showtimeId,
         seatIds: widget.info.booking.seatIds,
         snackQty: widget.info.snackQty,
         paymentMethod: _paymentMethodFor(method),
       );
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => PaymentSuccessScreen(info: widget.info)),
-      );
+
+      if (method == 'momo') {
+        final bookingId = (bookingResult['booking_id'] as num?)?.toInt();
+        if (bookingId == null) {
+          throw Exception('Không lấy được mã đặt vé để thanh toán');
+        }
+        await _payWithMomo(bookingId);
+      } else {
+        // Các phương thức khác: giữ luồng cũ (xác nhận đặt vé ngay)
+        _goToSuccess();
+      }
     } catch (error) {
       if (mounted) _showError(error.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isPaying = false);
     }
+  }
+
+  /// Luồng thanh toán MoMo: tạo giao dịch → mở app/trang MoMo → chờ kết quả.
+  Future<void> _payWithMomo(int bookingId) async {
+    final payment = await ApiService.createPayment(
+      bookingId: bookingId,
+      paymentMethod: 'MOMO',
+    );
+
+    final orderId = payment['orderId']?.toString();
+    final payUrl = payment['payUrl']?.toString();
+    final deeplink = payment['deeplink']?.toString();
+    if (orderId == null || payUrl == null || payUrl.isEmpty) {
+      throw Exception('Không tạo được giao dịch MoMo');
+    }
+
+    // Ưu tiên mở app MoMo qua deeplink, fallback sang payUrl (trình duyệt)
+    final primary = (deeplink != null && deeplink.isNotEmpty) ? deeplink : payUrl;
+    var opened = await _launchExternal(primary);
+    if (!opened && primary != payUrl) {
+      opened = await _launchExternal(payUrl);
+    }
+    if (!opened) {
+      throw Exception('Không mở được ứng dụng/trang thanh toán MoMo');
+    }
+
+    if (!mounted) return;
+    final status = await _waitForPaymentResult(orderId);
+    if (!mounted) return;
+
+    switch (status) {
+      case 'SUCCESS':
+        _goToSuccess();
+        break;
+      case 'FAILED':
+        _showError('Thanh toán MoMo thất bại hoặc đã bị huỷ.');
+        break;
+      case 'CANCELLED':
+        // Người dùng tự huỷ chờ — không báo lỗi
+        break;
+      default:
+        _showError(
+          'Chưa nhận được xác nhận thanh toán. Bạn có thể kiểm tra lại trong "Vé của tôi".',
+        );
+    }
+  }
+
+  Future<bool> _launchExternal(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    try {
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Mở dialog chờ và poll trạng thái cho tới khi có kết quả cuối cùng.
+  Future<String> _waitForPaymentResult(String orderId) async {
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _MomoWaitingDialog(orderId: orderId),
+    );
+    return result ?? 'PENDING';
+  }
+
+  void _goToSuccess() {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => PaymentSuccessScreen(info: widget.info)),
+    );
   }
 
   String _paymentMethodFor(String method) {
@@ -732,6 +813,132 @@ class _SummaryRow extends StatelessWidget {
         const SizedBox(width: 12),
         Text(value, style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 12, fontWeight: FontWeight.w500)),
       ],
+    );
+  }
+}
+
+// ── MoMo waiting dialog ──────────────────────────────────────────
+//
+// Poll trạng thái thanh toán mỗi 3 giây. Tự đóng (pop) với kết quả
+// 'SUCCESS' / 'FAILED' khi giao dịch kết thúc, 'PENDING' khi hết thời gian
+// chờ, hoặc 'CANCELLED' khi người dùng bấm Huỷ.
+
+class _MomoWaitingDialog extends StatefulWidget {
+  final String orderId;
+  const _MomoWaitingDialog({required this.orderId});
+
+  @override
+  State<_MomoWaitingDialog> createState() => _MomoWaitingDialogState();
+}
+
+class _MomoWaitingDialogState extends State<_MomoWaitingDialog> {
+  static const Duration _interval = Duration(seconds: 3);
+  static const int _maxSeconds = 300; // 5 phút
+
+  Timer? _timer;
+  int _elapsed = 0;
+  bool _checking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(_interval, (_) async {
+      _elapsed += _interval.inSeconds;
+      await _check();
+      if (_elapsed >= _maxSeconds) _finish('PENDING');
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _check() async {
+    if (_checking) return;
+    _checking = true;
+    try {
+      final data = await ApiService.getPaymentStatus(widget.orderId);
+      final status = data['payment_status']?.toString() ?? 'PENDING';
+      if (status == 'SUCCESS') {
+        _finish('SUCCESS');
+      } else if (status == 'FAILED' || status == 'EXPIRED') {
+        _finish('FAILED');
+      }
+    } catch (_) {
+      // Bỏ qua lỗi mạng tạm thời, tiếp tục poll
+    } finally {
+      _checking = false;
+    }
+  }
+
+  void _finish(String result) {
+    if (!mounted) return;
+    _timer?.cancel();
+    Navigator.of(context).pop(result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF11151F),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFAE2A82).withValues(alpha: 0.15),
+                border: Border.all(color: const Color(0xFFAE2A82).withValues(alpha: 0.5)),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation(Color(0xFFAE2A82)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Đang chờ thanh toán MoMo',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Hoàn tất thanh toán trên ứng dụng MoMo rồi quay lại đây. Hệ thống sẽ tự động xác nhận.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _checking ? null : _check,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFAE2A82),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFFAE2A82).withValues(alpha: 0.4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  elevation: 0,
+                ),
+                child: const Text('Tôi đã thanh toán xong', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _finish('CANCELLED'),
+              child: Text('Huỷ', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
