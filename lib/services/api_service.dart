@@ -49,6 +49,15 @@ class ApiService {
     return userRole!;
   }
 
+  static Future<void> changePassword(
+    String oldPassword,
+    String newPassword,
+  ) =>
+      _postJson(Uri.parse('$baseUrl/api/auth/change-password'), {
+        'old_password': oldPassword,
+        'new_password': newPassword,
+      });
+
   static Future<void> requestRegistrationOtp(String email) =>
       _postJson(Uri.parse('$baseUrl/api/auth/register/request-otp'), {'email': email});
 

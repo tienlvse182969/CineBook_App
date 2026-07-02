@@ -62,11 +62,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final newCtrl  = TextEditingController();
     final confCtrl = TextEditingController();
     final key      = GlobalKey<FormState>();
+    bool isSubmitting = false;
 
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.65),
-      builder: (ctx) => Dialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20),
         child: ClipRRect(
@@ -154,26 +156,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
-                              if (key.currentState?.validate() ?? false) {
-                                Navigator.pop(ctx);
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: const Text('Đã đổi mật khẩu thành công'),
-                                  backgroundColor: const Color(0xFF4CAF50),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  margin: const EdgeInsets.all(16),
-                                ));
-                              }
-                            },
+                            onPressed: isSubmitting
+                                ? null
+                                : () async {
+                                    if (!(key.currentState?.validate() ?? false)) return;
+                                    setDialogState(() => isSubmitting = true);
+                                    try {
+                                      await ApiService.changePassword(
+                                        oldCtrl.text,
+                                        newCtrl.text,
+                                      );
+                                      if (!mounted) return;
+                                      Navigator.of(context).pop();
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: const Text('Đã đổi mật khẩu thành công'),
+                                        backgroundColor: const Color(0xFF4CAF50),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        margin: const EdgeInsets.all(16),
+                                      ));
+                                    } catch (e) {
+                                      setDialogState(() => isSubmitting = false);
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text('$e'),
+                                        backgroundColor: const Color(0xFFE50914),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        margin: const EdgeInsets.all(16),
+                                      ));
+                                    }
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFE50914),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(vertical: 13),
                               elevation: 0,
+                              disabledBackgroundColor: const Color(0xFFE50914).withValues(alpha: 0.35),
                             ),
-                            child: const Text('Lưu', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Text('Lưu', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -184,6 +212,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
