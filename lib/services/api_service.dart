@@ -165,7 +165,7 @@ class ApiService {
       _delete(Uri.parse('$baseUrl/api/snacks/$id'));
 
   static Future<List<BookingRecord>> getMyBookings() async {
-    final data = await _getList(Uri.parse('$baseUrl/api/bookings/my'));
+    final data = await _getList(Uri.parse('$baseUrl/api/bookings/me'));
     return data.map(BookingRecord.fromJson).toList();
   }
 
@@ -191,9 +191,6 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getAdminStats() =>
       _getMap(Uri.parse('$baseUrl/api/admin/stats'));
-
-  static Future<Map<String, dynamic>> getBookingAnalytics() =>
-      _getMap(Uri.parse('$baseUrl/api/admin/bookings/analytics'));
 
   static Future<Map<String, dynamic>> getAdminBookings({int page = 1, String? status, String? dateRange}) async {
     final params = <String, String>{'page': '$page', 'limit': '15'};
