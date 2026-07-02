@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:ve_xem_phim/models/booking_record.dart';
 import 'package:ve_xem_phim/models/movie.dart';
+import 'package:ve_xem_phim/models/review.dart';
 import 'package:ve_xem_phim/models/showtime.dart';
 import 'package:ve_xem_phim/models/snack.dart';
 import 'package:ve_xem_phim/models/user_profile.dart';
@@ -42,6 +43,9 @@ class ApiService {
     });
     token = json['token']?.toString();
     userRole = (json['user']?['role']?.toString() ?? 'user').toUpperCase();
+    if (json['user'] is Map<String, dynamic>) {
+      currentUser = UserProfile.fromJson(json['user'] as Map<String, dynamic>);
+    }
     return userRole!;
   }
 
@@ -66,11 +70,15 @@ class ApiService {
     });
     token = json['token']?.toString();
     userRole = json['user']?['role']?.toString() ?? 'USER';
+    if (json['user'] is Map<String, dynamic>) {
+      currentUser = UserProfile.fromJson(json['user'] as Map<String, dynamic>);
+    }
   }
 
   static void logout() {
     token = null;
     userRole = null;
+    currentUser = null;
   }
 
   // ─── Movies ─────────────────────────────────────────────────────────────────
@@ -185,6 +193,25 @@ class ApiService {
       'snacks': snacks,
       'payment_method': paymentMethod,
     });
+  }
+
+  // ─── Reviews ────────────────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getMovieReviews(int movieId) =>
+      _getMap(Uri.parse('$baseUrl/api/movies/$movieId/reviews'));
+
+  static Future<MovieReview> submitReview(
+    int movieId,
+    int score,
+    String? comment,
+  ) async {
+    final body = <String, dynamic>{'score': score};
+    if (comment != null && comment.isNotEmpty) body['comment'] = comment;
+    final json = await _postJson(
+      Uri.parse('$baseUrl/api/movies/$movieId/reviews'),
+      body,
+    );
+    return MovieReview.fromJson(json);
   }
 
   // ─── Admin ──────────────────────────────────────────────────────────────────
