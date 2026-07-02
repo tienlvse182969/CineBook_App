@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ve_xem_phim/models/payment_info.dart';
+import 'package:ve_xem_phim/screens/booking/seat_selection_screen.dart';
 import 'package:ve_xem_phim/screens/home/home_screen.dart';
 import 'package:ve_xem_phim/screens/profile/my_tickets_screen.dart';
 
@@ -386,6 +387,22 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Link: về trang chọn ghế của suất chiếu đã đặt
+        TextButton.icon(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SeatSelectionScreen(movie: widget.info.booking.movie),
+            ),
+          ),
+          icon: const Icon(LucideIcons.armchair, size: 16),
+          label: const Text('Xem lại sơ đồ ghế đã đặt'),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFE50914),
+            padding: const EdgeInsets.symmetric(vertical: 10),
           ),
         ),
       ],
