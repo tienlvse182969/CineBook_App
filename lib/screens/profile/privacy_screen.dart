@@ -12,9 +12,6 @@ class PrivacyScreen extends StatefulWidget {
 }
 
 class _PrivacyScreenState extends State<PrivacyScreen> {
-  bool _googleLinked    = true;
-  bool _otpLinked       = false;
-
   void _showPasswordDialog() {
     final oldCtrl  = TextEditingController();
     final newCtrl  = TextEditingController();
@@ -188,7 +185,6 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             slivers: [
               SliverToBoxAdapter(child: _buildHeader(context)),
               SliverToBoxAdapter(child: _buildSecuritySection()),
-              SliverToBoxAdapter(child: _buildLoginMethodsSection()),
               SliverToBoxAdapter(
                 child: SizedBox(height: MediaQuery.of(context).padding.bottom + 32),
               ),
@@ -317,56 +313,6 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
     );
   }
 
-  // ── Login methods ─────────────────────────────────────────────
-
-  Widget _buildLoginMethodsSection() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader(LucideIcons.link, 'Phương thức đăng nhập'),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                child: Column(
-                  children: [
-                    _MethodRow(
-                      icon: LucideIcons.globe,
-                      label: 'Google',
-                      subtitle: 'Đăng nhập bằng tài khoản Google',
-                      linked: _googleLinked,
-                      onToggle: (v) => setState(() => _googleLinked = v),
-                    ),
-                    _divider(),
-                    _MethodRow(
-                      icon: LucideIcons.mail,
-                      label: 'OTP Email',
-                      subtitle: 'Xác thực qua mã gửi về email',
-                      linked: _otpLinked,
-                      onToggle: (v) => setState(() => _otpLinked = v),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() =>
-      Divider(height: 1, color: Colors.white.withValues(alpha: 0.07), indent: 16, endIndent: 16);
-
   // ── Helpers ───────────────────────────────────────────────────
 
   Widget _sectionHeader(IconData icon, String title) {
@@ -377,66 +323,6 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
         Text(title,
             style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
       ],
-    );
-  }
-}
-
-// ── Method toggle row ────────────────────────────────────────────
-
-class _MethodRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final bool linked;
-  final ValueChanged<bool> onToggle;
-
-  const _MethodRow({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.linked,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: linked
-                  ? const Color(0xFFE50914).withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.06),
-            ),
-            child: Icon(icon, size: 17,
-                color: linked ? const Color(0xFFE50914) : Colors.white.withValues(alpha: 0.4)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(subtitle,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.32), fontSize: 11)),
-              ],
-            ),
-          ),
-          Switch(
-            value: linked,
-            onChanged: onToggle,
-            activeThumbColor: const Color(0xFFE50914),
-            activeTrackColor: const Color(0xFFE50914).withValues(alpha: 0.3),
-            inactiveThumbColor: Colors.white38,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-          ),
-        ],
-      ),
     );
   }
 }

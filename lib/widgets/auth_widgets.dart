@@ -213,6 +213,7 @@ class GlassDateField extends StatelessWidget {
   final VoidCallback onTap;
   final String label;
   final String hint;
+  final String? errorText;
 
   const GlassDateField({
     super.key,
@@ -220,10 +221,12 @@ class GlassDateField extends StatelessWidget {
     required this.onTap,
     this.label = 'Ngày sinh',
     this.hint = 'Chọn ngày sinh',
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,11 +243,14 @@ class GlassDateField extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.13)),
+                  border: Border.all(
+                    color: hasError ? Colors.redAccent : Colors.white.withValues(alpha: 0.13),
+                    width: hasError ? 1.5 : 1,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(LucideIcons.calendar, color: Colors.white54, size: 20),
+                    Icon(LucideIcons.calendar, color: hasError ? Colors.redAccent : Colors.white54, size: 20),
                     const SizedBox(width: 12),
                     Text(
                       value != null
@@ -260,6 +266,16 @@ class GlassDateField extends StatelessWidget {
             ),
           ),
         ),
+        if (hasError) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              errorText!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          ),
+        ],
       ],
     );
   }

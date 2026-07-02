@@ -214,8 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const Spacer(),
-          _GlassIconButton(
-            icon: LucideIcons.user,
+          _ProfileAvatarButton(
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
@@ -302,13 +301,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ── Sub-widgets ───────────────────────────────────────────────
 
-class _GlassIconButton extends StatelessWidget {
-  final IconData icon;
+class _ProfileAvatarButton extends StatelessWidget {
   final VoidCallback? onTap;
-  const _GlassIconButton({required this.icon, this.onTap});
+  const _ProfileAvatarButton({this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final initials = ApiService.currentUser?.initials ?? 'U';
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -319,11 +318,25 @@ class _GlassIconButton extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.13)),
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFE50914), Color(0xFF8B0000)],
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
             ),
-            child: Icon(icon, color: Colors.white70, size: 18),
+            child: Center(
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
           ),
         ),
       ),
