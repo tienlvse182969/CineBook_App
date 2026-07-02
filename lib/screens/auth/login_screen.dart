@@ -108,29 +108,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 12),
                       _GoogleButton(onPressed: () {}),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GlassOutlineButton(
-                              label: 'OTP Email',
-                              icon: LucideIcons.mail,
-                              onPressed: () {},
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: GlassOutlineButton(
-                              label: '2FA',
-                              icon: LucideIcons.shield,
-                              onPressed: () {},
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
                       GlassOutlineButton(
-                        label: 'Đăng nhập bằng vân tay',
-                        icon: LucideIcons.fingerprint,
+                        label: 'OTP Email',
+                        icon: LucideIcons.mail,
                         onPressed: () {},
                       ),
                     ],

@@ -6,6 +6,7 @@ import 'package:ve_xem_phim/screens/auth/login_screen.dart';
 import 'package:ve_xem_phim/screens/profile/edit_profile_screen.dart';
 import 'package:ve_xem_phim/screens/profile/my_tickets_screen.dart';
 import 'package:ve_xem_phim/screens/profile/privacy_screen.dart';
+import 'package:ve_xem_phim/screens/profile/terms_screen.dart';
 import 'package:ve_xem_phim/services/api_service.dart';
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -230,8 +231,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSettingsSection() {
     final items = <(IconData, String, String)>[
-      (LucideIcons.bell,         'Thông báo',         'Quản lý thông báo đẩy'),
-      (LucideIcons.globe,        'Ngôn ngữ',           'Tiếng Việt'),
       (LucideIcons.shieldCheck,  'Quyền riêng tư',    'Dữ liệu & bảo mật'),
       (LucideIcons.fileText,     'Điều khoản sử dụng', ''),
       (LucideIcons.info,         'Về ứng dụng',        'Phiên bản 1.0.0'),
@@ -269,6 +268,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   context,
                                   MaterialPageRoute(builder: (_) => const PrivacyScreen()),
                                 );
+                              } else if (label == 'Điều khoản sử dụng') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const TermsScreen()),
+                                );
+                              } else if (label == 'Về ứng dụng') {
+                                _showAboutDialog(context);
                               }
                             },
                             child: Padding(
@@ -436,6 +442,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: const Color(0xFF141428).withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(LucideIcons.clapperboard, color: Color(0xFFE50914), size: 22),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'CineBook',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Text(
+                      'Phiên bản 1.0.0',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Ứng dụng đặt vé xem phim nhanh chóng và tiện lợi.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13, height: 1.6),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE50914),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        elevation: 0,
+                      ),
+                      child: const Text('Đóng', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ],
               ),

@@ -14,8 +14,6 @@ class PrivacyScreen extends StatefulWidget {
 class _PrivacyScreenState extends State<PrivacyScreen> {
   bool _googleLinked    = true;
   bool _otpLinked       = false;
-  bool _twoFaLinked     = false;
-  bool _fingerprintEnabled = false;
 
   void _showPasswordDialog() {
     final oldCtrl  = TextEditingController();
@@ -173,80 +171,6 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
           ),
         ),
       ),
-      ),
-    );
-  }
-
-  void _showFingerprintPrompt() {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.65),
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: const Color(0xFF141428).withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64, height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFE50914).withValues(alpha: 0.1),
-                      border: Border.all(color: const Color(0xFFE50914).withValues(alpha: 0.35), width: 1.5),
-                    ),
-                    child: const Icon(LucideIcons.fingerprint, color: Color(0xFFE50914), size: 30),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Đăng ký vân tay',
-                      style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Đặt ngón tay lên cảm biến để xác thực',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      setState(() => _fingerprintEnabled = true);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text('Đã bật đăng nhập bằng vân tay'),
-                        backgroundColor: const Color(0xFF4CAF50),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        margin: const EdgeInsets.all(16),
-                      ));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE50914),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Xác thực ngay', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text('Hủy', style: TextStyle(color: Colors.white.withValues(alpha: 0.4))),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -430,25 +354,6 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                       linked: _otpLinked,
                       onToggle: (v) => setState(() => _otpLinked = v),
                     ),
-                    _divider(),
-                    _MethodRow(
-                      icon: LucideIcons.shield,
-                      label: '2FA',
-                      subtitle: 'Xác thực 2 bước',
-                      linked: _twoFaLinked,
-                      onToggle: (v) => setState(() => _twoFaLinked = v),
-                    ),
-                    _divider(),
-                    _FingerprintRow(
-                      enabled: _fingerprintEnabled,
-                      onToggle: (v) {
-                        if (v) {
-                          _showFingerprintPrompt();
-                        } else {
-                          setState(() => _fingerprintEnabled = false);
-                        }
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -527,63 +432,6 @@ class _MethodRow extends StatelessWidget {
             onChanged: onToggle,
             activeThumbColor: const Color(0xFFE50914),
             activeTrackColor: const Color(0xFFE50914).withValues(alpha: 0.3),
-            inactiveThumbColor: Colors.white38,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Fingerprint row ──────────────────────────────────────────────
-
-class _FingerprintRow extends StatelessWidget {
-  final bool enabled;
-  final ValueChanged<bool> onToggle;
-  const _FingerprintRow({required this.enabled, required this.onToggle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: enabled
-                  ? const Color(0xFF4CAF50).withValues(alpha: 0.12)
-                  : Colors.white.withValues(alpha: 0.06),
-            ),
-            child: Icon(LucideIcons.fingerprint, size: 18,
-                color: enabled ? const Color(0xFF4CAF50) : Colors.white.withValues(alpha: 0.4)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Vân tay', style: TextStyle(color: Colors.white, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(
-                  enabled ? 'Đã bật đăng nhập bằng vân tay' : 'Đăng nhập nhanh bằng sinh trắc học',
-                  style: TextStyle(
-                    color: enabled
-                        ? const Color(0xFF4CAF50).withValues(alpha: 0.8)
-                        : Colors.white.withValues(alpha: 0.32),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: enabled,
-            onChanged: onToggle,
-            activeThumbColor: const Color(0xFF4CAF50),
-            activeTrackColor: const Color(0xFF4CAF50).withValues(alpha: 0.3),
             inactiveThumbColor: Colors.white38,
             inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
           ),

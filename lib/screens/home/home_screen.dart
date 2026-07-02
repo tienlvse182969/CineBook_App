@@ -5,7 +5,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ve_xem_phim/models/movie.dart';
 import 'package:ve_xem_phim/screens/home/movie_detail_screen.dart';
 import 'package:ve_xem_phim/screens/profile/profile_screen.dart';
-import 'package:ve_xem_phim/screens/support/support_chat_screen.dart';
 import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
@@ -77,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: _buildFab(context),
       body: AuthBackground(
         child: CustomScrollView(
           slivers: [
@@ -173,38 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFab(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SupportChatScreen()),
-      ),
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFFE50914),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFE50914).withValues(alpha: 0.5),
-                  blurRadius: 24,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(LucideIcons.headset, color: Colors.white, size: 24),
-          ),
         ),
       ),
     );
@@ -567,7 +533,7 @@ class _MovieCard extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Flexible(
-                                      child: _InfoChip(icon: LucideIcons.star, label: movie.rating, highlight: true),
+                                      child: _InfoChip(icon: LucideIcons.star, label: movie.displayRating, highlight: true),
                                     ),
                                     const SizedBox(width: 10),
                                     _InfoChip(icon: LucideIcons.clock, label: movie.duration),
@@ -687,7 +653,7 @@ class _CompactMovieCard extends StatelessWidget {
                             const SizedBox(width: 3),
                             Flexible(
                               child: Text(
-                                movie.rating,
+                                movie.displayRating,
                                 style: const TextStyle(
                                   color: Color(0xFFFFB300),
                                   fontSize: 11,
