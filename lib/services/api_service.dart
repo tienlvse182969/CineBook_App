@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:ve_xem_phim/models/booking_record.dart';
 import 'package:ve_xem_phim/models/movie.dart';
@@ -11,9 +12,14 @@ import 'package:ve_xem_phim/models/user_profile.dart';
 class ApiService {
   ApiService._();
 
+  /// Thứ tự ưu tiên: --dart-define=API_BASE_URL > .env > mặc định theo nền tảng.
   static String get baseUrl {
-    const env = String.fromEnvironment('API_BASE_URL', defaultValue: '');
-    if (env.isNotEmpty) return env;
+    const fromDefine = String.fromEnvironment('API_BASE_URL');
+    if (fromDefine.isNotEmpty) return fromDefine;
+    if (dotenv.isInitialized) {
+      final fromEnv = dotenv.maybeGet('API_BASE_URL');
+      if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+    }
     // Web (Chrome/Edge) dùng localhost, Android emulator dùng 10.0.2.2
     return kIsWeb ? 'http://localhost:3000' : 'http://10.0.2.2:3000';
   }

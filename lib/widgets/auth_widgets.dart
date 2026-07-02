@@ -361,12 +361,13 @@ class OtpInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(6, (i) {
-        return SizedBox(
-          width: 46,
-          height: 56,
-          child: ClipRRect(
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: i < 5 ? 8 : 0),
+            child: SizedBox(
+            height: 56,
+            child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -403,6 +404,8 @@ class OtpInput extends StatelessWidget {
                   }
                 },
               ),
+            ),
+            ),
             ),
           ),
         );

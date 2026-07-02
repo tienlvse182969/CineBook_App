@@ -109,13 +109,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
 
     // Ưu tiên mở app MoMo qua deeplink, fallback sang payUrl (trình duyệt)
-    final primary = (deeplink != null && deeplink.isNotEmpty) ? deeplink : payUrl;
-    var opened = await _launchExternal(primary);
-    if (!opened && primary != payUrl) {
-      opened = await _launchExternal(payUrl);
+    // Ưu tiên mở trang web sandbox (payUrl) để nhập tài khoản/thẻ test —
+    // hợp cho việc test trên web/emulator. Deeplink chỉ dùng làm phương án dự phòng.
+    var opened = await _launchExternal(payUrl);
+    if (!opened && deeplink != null && deeplink.isNotEmpty) {
+      opened = await _launchExternal(deeplink);
     }
     if (!opened) {
-      throw Exception('Không mở được ứng dụng/trang thanh toán MoMo');
+      throw Exception('Không mở được trang thanh toán MoMo');
     }
 
     if (!mounted) return;
