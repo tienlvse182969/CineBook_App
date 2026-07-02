@@ -2,12 +2,53 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ve_xem_phim/models/movie.dart';
+import 'package:ve_xem_phim/models/review.dart';
 import 'package:ve_xem_phim/screens/booking/seat_selection_screen.dart';
+import 'package:ve_xem_phim/services/api_service.dart';
 import 'package:ve_xem_phim/widgets/auth_widgets.dart';
 
-class MovieDetailScreen extends StatelessWidget {
+class MovieDetailScreen extends StatefulWidget {
   final Movie movie;
   const MovieDetailScreen({super.key, required this.movie});
+
+  @override
+  State<MovieDetailScreen> createState() => _MovieDetailScreenState();
+}
+
+class _MovieDetailScreenState extends State<MovieDetailScreen> {
+  Movie get movie => widget.movie;
+
+  ReviewSummary? _reviewSummary;
+  List<MovieReview> _reviews = [];
+  bool _loadingReviews = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    if (movie.id == null) {
+      if (mounted) setState(() => _loadingReviews = false);
+      return;
+    }
+    try {
+      final json = await ApiService.getMovieReviews(movie.id!);
+      if (!mounted) return;
+      final summaryJson = json['review_summary'] as Map<String, dynamic>? ?? {};
+      final reviewsJson = json['reviews'] as List<dynamic>? ?? [];
+      setState(() {
+        _reviewSummary = ReviewSummary.fromJson(summaryJson);
+        _reviews = reviewsJson
+            .map((r) => MovieReview.fromJson(r as Map<String, dynamic>))
+            .toList();
+        _loadingReviews = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingReviews = false);
+    }
+  }
 
   Color get _ageColor {
     switch (movie.ageRating) {
@@ -32,24 +73,20 @@ class MovieDetailScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF080C14),
       body: Stack(
         children: [
-          // Background glow orbs
           _buildBgGlow(),
-          // Scrollable content
           SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [_buildPoster(context), _buildBody()],
+              children: [_buildPoster(context), _buildBody(context)],
             ),
           ),
-          // Floating back button
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: _BackButton(),
             ),
           ),
-          // Pinned bottom button
           Positioned(
             bottom: 0,
             left: 0,
@@ -118,7 +155,6 @@ class MovieDetailScreen extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Gradient background
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -150,7 +186,6 @@ class MovieDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Decorative circles
           Positioned(
             top: -40,
             right: -40,
@@ -175,13 +210,12 @@ class MovieDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Poster image or fallback icon
           if (movie.posterUrl != null)
             Positioned.fill(
               child: Image.network(
                 movie.posterUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Center(
+                errorBuilder: (_, _, _) => Center(
                   child: Icon(
                     LucideIcons.film,
                     size: 130,
@@ -198,7 +232,6 @@ class MovieDetailScreen extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.07),
               ),
             ),
-          // Trailer play button
           Center(
             child: GestureDetector(
               onTap: () => _showTrailerDialog(context),
@@ -227,23 +260,17 @@ class MovieDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          // "TRAILER" label
           Positioned(
             top: 56,
             left: 0,
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.15),
-                  ),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                 ),
                 child: const Text(
                   'TRAILER',
@@ -257,7 +284,6 @@ class MovieDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Rating badge (top right)
           Positioned(
             top: 52,
             right: 16,
@@ -277,7 +303,6 @@ class MovieDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Bottom fade
           Positioned(
             bottom: 0,
             left: 0,
@@ -321,10 +346,7 @@ class MovieDetailScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Đóng',
-              style: TextStyle(color: Color(0xFFE50914)),
-            ),
+            child: const Text('Đóng', style: TextStyle(color: Color(0xFFE50914))),
           ),
         ],
       ),
@@ -333,13 +355,12 @@ class MovieDetailScreen extends StatelessWidget {
 
   // ── Body ─────────────────────────────────────────────────────
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
           Text(
             movie.title,
             style: const TextStyle(
@@ -350,13 +371,10 @@ class MovieDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          // Genre chips
           _buildGenreChips(),
           const SizedBox(height: 16),
-          // Quick info row
           _buildQuickInfo(),
           const SizedBox(height: 20),
-          // Description
           _buildSection(
             icon: LucideIcons.alignLeft,
             title: 'Mô tả',
@@ -370,17 +388,13 @@ class MovieDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Age rating
           _buildSection(
             icon: LucideIcons.shieldCheck,
             title: 'Kiểm duyệt độ tuổi',
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
                     color: _ageColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
@@ -410,7 +424,6 @@ class MovieDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Details grid
           _buildSection(
             icon: LucideIcons.info,
             title: 'Thông tin phim',
@@ -420,22 +433,13 @@ class MovieDetailScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _buildDetailRow(LucideIcons.globe, 'Ngôn ngữ', movie.language),
                 const SizedBox(height: 12),
-                _buildDetailRow(
-                  LucideIcons.calendar,
-                  'Khởi chiếu',
-                  movie.firstShowing,
-                ),
+                _buildDetailRow(LucideIcons.calendar, 'Khởi chiếu', movie.firstShowing),
                 const SizedBox(height: 12),
-                _buildDetailRow(
-                  LucideIcons.clock,
-                  'Thời lượng',
-                  movie.duration,
-                ),
+                _buildDetailRow(LucideIcons.clock, 'Thời lượng', movie.duration),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          // Cast
           _buildSection(
             icon: LucideIcons.users,
             title: 'Diễn viên',
@@ -450,6 +454,8 @@ class MovieDetailScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          _buildReviewsSection(context),
           const SizedBox(height: 8),
         ],
       ),
@@ -483,6 +489,11 @@ class MovieDetailScreen extends StatelessWidget {
   }
 
   Widget _buildQuickInfo() {
+    final ratingLabel =
+        (_reviewSummary != null && _reviewSummary!.reviewCount > 0)
+        ? '${_reviewSummary!.averageScore.toStringAsFixed(1)}/5'
+        : movie.rating;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: BackdropFilter(
@@ -500,7 +511,7 @@ class MovieDetailScreen extends StatelessWidget {
                 child: _QuickInfoItem(
                   icon: LucideIcons.star,
                   label: 'Đánh giá',
-                  value: movie.rating,
+                  value: ratingLabel,
                   highlight: true,
                 ),
               ),
@@ -590,6 +601,419 @@ class MovieDetailScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  // ── Reviews section ──────────────────────────────────────────
+
+  Widget _buildReviewsSection(BuildContext context) {
+    return _buildSection(
+      icon: LucideIcons.star,
+      title: 'Đánh giá người dùng',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (_reviewSummary != null && _reviewSummary!.reviewCount > 0) ...[
+                _StarRow(score: _reviewSummary!.averageScore.round()),
+                const SizedBox(width: 8),
+                Text(
+                  '${_reviewSummary!.averageScore.toStringAsFixed(1)} · ${_reviewSummary!.reviewCount} đánh giá',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
+                ),
+              ] else if (!_loadingReviews) ...[
+                Text(
+                  'Chưa có đánh giá',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              if (ApiService.token != null && movie.id != null)
+                GestureDetector(
+                  onTap: () => _showReviewDialog(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE50914).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFE50914).withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(LucideIcons.pencil, size: 11, color: Color(0xFFE50914)),
+                        SizedBox(width: 5),
+                        Text(
+                          'Viết đánh giá',
+                          style: TextStyle(
+                            color: Color(0xFFE50914),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (_loadingReviews) ...[
+            const SizedBox(height: 16),
+            const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFFE50914),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ] else if (_reviews.isEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              'Hãy là người đầu tiên đánh giá phim này!',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.3),
+                fontSize: 13,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 14),
+            ..._reviews.take(5).map(_buildReviewItem),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewItem(MovieReview review) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1A237E), Color(0xFF880E4F)],
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: Center(
+              child: Text(
+                review.initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        review.reviewerName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      review.dateLabel,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                _StarRow(score: review.score),
+                if (review.comment != null && review.comment!.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    '"${review.comment}"',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReviewDialog(BuildContext context) {
+    int selectedScore = 0;
+    bool isSubmitting = false;
+    final commentCtrl = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141428).withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFFFB300).withValues(alpha: 0.1),
+                          ),
+                          child: const Icon(
+                            LucideIcons.star,
+                            color: Color(0xFFFFB300),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Đánh giá phim',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                movie.title,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      'Chọn số sao:',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (i) {
+                        final filled = i < selectedScore;
+                        return GestureDetector(
+                          onTap: () =>
+                              setDialogState(() => selectedScore = i + 1),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Icon(
+                              LucideIcons.star,
+                              size: 38,
+                              color: filled
+                                  ? const Color(0xFFFFB300)
+                                  : Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Nhận xét (tùy chọn):',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      child: TextField(
+                        controller: commentCtrl,
+                        maxLines: 3,
+                        maxLength: 1000,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: 'Chia sẻ cảm nhận của bạn về phim...',
+                          hintStyle: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.22),
+                            fontSize: 13,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(12),
+                          counterStyle: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed:
+                                isSubmitting ? null : () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white70,
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                            ),
+                            child: const Text('Hủy'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: (isSubmitting || selectedScore == 0)
+                                ? null
+                                : () async {
+                                    setDialogState(() => isSubmitting = true);
+                                    try {
+                                      await ApiService.submitReview(
+                                        movie.id!,
+                                        selectedScore,
+                                        commentCtrl.text.trim().isEmpty
+                                            ? null
+                                            : commentCtrl.text.trim(),
+                                      );
+                                      if (!mounted) return;
+                                      Navigator.of(this.context).pop();
+                                      ScaffoldMessenger.of(this.context).showSnackBar(
+                                        SnackBar(
+                                          content: const Text(
+                                            'Đã gửi đánh giá thành công',
+                                          ),
+                                          backgroundColor: const Color(0xFF4CAF50),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          margin: const EdgeInsets.all(16),
+                                        ),
+                                      );
+                                      _loadReviews();
+                                    } catch (e) {
+                                      setDialogState(() => isSubmitting = false);
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(this.context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Lỗi: $e'),
+                                          backgroundColor: const Color(0xFFE50914),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          margin: const EdgeInsets.all(16),
+                                        ),
+                                      );
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE50914),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              elevation: 0,
+                              disabledBackgroundColor:
+                                  const Color(0xFFE50914).withValues(alpha: 0.35),
+                            ),
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Gửi đánh giá',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -763,6 +1187,28 @@ class _CastCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StarRow extends StatelessWidget {
+  final int score;
+  const _StarRow({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(
+        5,
+        (i) => Icon(
+          LucideIcons.star,
+          size: 13,
+          color: i < score
+              ? const Color(0xFFFFB300)
+              : Colors.white.withValues(alpha: 0.18),
+        ),
+      ),
     );
   }
 }

@@ -112,6 +112,7 @@ class GlassInput extends StatefulWidget {
   final TextEditingController? controller;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final bool readOnly;
 
   const GlassInput({
     super.key,
@@ -122,6 +123,7 @@ class GlassInput extends StatefulWidget {
     this.controller,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.readOnly = false,
   });
 
   @override
@@ -156,7 +158,8 @@ class _GlassInputState extends State<GlassInput> {
               obscureText: _obscure,
               keyboardType: widget.keyboardType,
               validator: widget.validator,
-              style: const TextStyle(color: Colors.white),
+              readOnly: widget.readOnly,
+              style: TextStyle(color: widget.readOnly ? Colors.white54 : Colors.white),
               decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.28)),
@@ -210,6 +213,7 @@ class GlassDateField extends StatelessWidget {
   final VoidCallback onTap;
   final String label;
   final String hint;
+  final String? errorText;
 
   const GlassDateField({
     super.key,
@@ -217,10 +221,12 @@ class GlassDateField extends StatelessWidget {
     required this.onTap,
     this.label = 'Ngày sinh',
     this.hint = 'Chọn ngày sinh',
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -237,11 +243,14 @@ class GlassDateField extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.13)),
+                  border: Border.all(
+                    color: hasError ? Colors.redAccent : Colors.white.withValues(alpha: 0.13),
+                    width: hasError ? 1.5 : 1,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(LucideIcons.calendar, color: Colors.white54, size: 20),
+                    Icon(LucideIcons.calendar, color: hasError ? Colors.redAccent : Colors.white54, size: 20),
                     const SizedBox(width: 12),
                     Text(
                       value != null
@@ -257,6 +266,16 @@ class GlassDateField extends StatelessWidget {
             ),
           ),
         ),
+        if (hasError) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              errorText!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          ),
+        ],
       ],
     );
   }

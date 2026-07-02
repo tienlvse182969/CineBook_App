@@ -18,6 +18,8 @@ class Movie {
   final String firstShowing;
   final String? posterUrl;
   final String status;
+  final double? averageScore;
+  final int reviewCount;
 
   const Movie({
     this.id,
@@ -37,7 +39,16 @@ class Movie {
     required this.firstShowing,
     this.posterUrl,
     this.status = 'NOW_SHOWING',
+    this.averageScore,
+    this.reviewCount = 0,
   });
+
+  String get displayRating {
+    if (averageScore != null && reviewCount > 0) {
+      return '${averageScore!.toStringAsFixed(1)}/5';
+    }
+    return rating;
+  }
 
   factory Movie.fromJson(Map<String, dynamic> json) {
     final age = (json['age_restriction'] as num?)?.toInt() ?? 0;
@@ -46,6 +57,9 @@ class Movie {
     final cast = castJson is List
         ? castJson.map((e) => e.toString()).toList()
         : <String>[];
+    final summaryJson = json['review_summary'] as Map<String, dynamic>?;
+    final averageScore = (summaryJson?['average_score'] as num?)?.toDouble();
+    final reviewCount = (summaryJson?['review_count'] as num?)?.toInt() ?? 0;
 
     return Movie(
       id: (json['movie_id'] as num?)?.toInt(),
@@ -78,6 +92,8 @@ class Movie {
           json['description']?.toString() ??
           'Nội dung phim đang được cập nhật.',
       status: json['status']?.toString() ?? 'NOW_SHOWING',
+      averageScore: averageScore,
+      reviewCount: reviewCount,
     );
   }
 

@@ -28,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
 
   final _step1FormKey = GlobalKey<FormState>();
+  String? _dateError;
 
   @override
   void dispose() {
@@ -61,12 +62,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: child!,
       ),
     );
-    if (date != null) setState(() => _birthDate = date);
+    if (date != null) {
+      setState(() {
+        _birthDate = date;
+        _dateError = null;
+      });
+    }
   }
 
   Future<void> _next() async {
     if (_currentStep == 0) {
-      if (_step1FormKey.currentState?.validate() ?? false) {
+      final isFormValid = _step1FormKey.currentState?.validate() ?? false;
+      setState(() {
+        _dateError = _birthDate == null ? 'Vui lòng chọn ngày sinh' : null;
+      });
+      if (isFormValid && _dateError == null) {
         setState(() => _currentStep = 1);
       }
     } else if (_currentStep == 1) {
@@ -255,7 +265,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               },
             ),
             const SizedBox(height: 14),
-            GlassDateField(value: _birthDate, onTap: _pickDate),
+            GlassDateField(
+              value: _birthDate,
+              onTap: _pickDate,
+              errorText: _dateError,
+            ),
             const SizedBox(height: 24),
             GlassPrimaryButton(label: 'Tiếp theo', onPressed: _next),
           ],

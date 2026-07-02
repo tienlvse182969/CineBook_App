@@ -312,7 +312,10 @@ class TicketDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20)],
                   ),
-                  child: CustomPaint(painter: _QrPainter()),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.asset('assets/qr/QRCode.jpg', fit: BoxFit.contain),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -444,44 +447,4 @@ class _InfoCell extends StatelessWidget {
       ),
     );
   }
-}
-
-class _QrPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF111111);
-    const grid = 11;
-    final cell = size.width / grid;
-
-    const pattern = [
-      [1,1,1,1,1,1,1,0,1,0,1],
-      [1,0,0,0,0,0,1,0,0,1,0],
-      [1,0,1,1,1,0,1,0,1,0,1],
-      [1,0,1,1,1,0,1,1,0,1,0],
-      [1,0,1,1,1,0,1,0,1,1,1],
-      [1,0,0,0,0,0,1,1,0,0,0],
-      [1,1,1,1,1,1,1,0,1,0,1],
-      [0,0,0,0,0,0,0,1,1,0,1],
-      [1,0,1,1,0,1,1,0,1,1,0],
-      [0,1,0,0,1,1,0,1,0,1,1],
-      [1,1,0,1,0,0,1,0,1,0,1],
-    ];
-
-    for (int r = 0; r < grid; r++) {
-      for (int c = 0; c < grid; c++) {
-        if (pattern[r][c] == 1) {
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(
-              Rect.fromLTWH(c * cell + 1, r * cell + 1, cell - 2, cell - 2),
-              const Radius.circular(2),
-            ),
-            paint,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
 }

@@ -30,10 +30,6 @@ class _PayMethod {
 
 final _payMethods = <_PayMethod>[
   const _PayMethod(id: 'momo',    name: 'MoMo',              subtitle: 'Ví điện tử MoMo',         color: Color(0xFFAE2A82), logoAsset: 'assets/logos/momo.png'),
-  const _PayMethod(id: 'zalopay', name: 'ZaloPay',           subtitle: 'Ví điện tử ZaloPay',      color: Color(0xFF006AF5), logoAsset: 'assets/logos/zalopay.png'),
-  const _PayMethod(id: 'vnpay',   name: 'VNPay',             subtitle: 'Ví VNPay & ngân hàng',    color: Color(0xFFE41D2C), logoAsset: 'assets/logos/vnpay.jpg'),
-  const _PayMethod(id: 'card',    name: 'Thẻ ngân hàng',     subtitle: 'Visa / Mastercard / JCB', color: Color(0xFF9C9C9C), icon: LucideIcons.creditCard),
-  const _PayMethod(id: 'cash',    name: 'Tiền mặt tại quầy', subtitle: 'Thanh toán khi nhận vé',  color: Color(0xFF4CAF50), icon: LucideIcons.banknote),
 ];
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -49,8 +45,6 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   String? _selectedMethod;
   bool _termsAccepted = false;
-  String _discountCode = '';
-  bool _discountApplied = false;
   bool _isPaying = false;
 
   bool get _canPay => _selectedMethod != null && _termsAccepted;
@@ -230,8 +224,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     _buildOrderSummary(),
                     const SizedBox(height: 14),
                     _buildPriceSection(),
-                    const SizedBox(height: 14),
-                    _buildDiscountSection(),
                     const SizedBox(height: 14),
                     _buildPaymentMethods(),
                     const SizedBox(height: 14),
@@ -496,80 +488,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  // ── Discount code ───────────────────────────────────────────
-
-  Widget _buildDiscountSection() {
-    return _GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(LucideIcons.tag, size: 13, color: const Color(0xFFE50914)),
-            const SizedBox(width: 7),
-            const Text('Mã giảm giá', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          ]),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  onChanged: (v) => setState(() {
-                    _discountCode = v.trim();
-                    _discountApplied = false;
-                  }),
-                  style: const TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 1.5),
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(
-                    hintText: 'Nhập mã giảm giá',
-                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 13, letterSpacing: 0),
-                    filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.05),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                      borderSide: BorderSide(color: Color(0xFFE50914), width: 1.5),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: _discountCode.isNotEmpty && !_discountApplied
-                    ? () => setState(() {
-                          _discountApplied = true;
-                          FocusManager.instance.primaryFocus?.unfocus();
-                        })
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE50914),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.white.withValues(alpha: 0.07),
-                  disabledForegroundColor: Colors.white38,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  elevation: 0,
-                ),
-                child: const Text('Áp dụng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              ),
-            ],
-          ),
-          if (_discountApplied) ...[
-            const SizedBox(height: 10),
-            Row(children: [
-              const Icon(LucideIcons.circleCheck, size: 14, color: Color(0xFF4CAF50)),
-              const SizedBox(width: 6),
-              const Text('Mã giảm giá hợp lệ!', style: TextStyle(color: Color(0xFF4CAF50), fontSize: 12)),
-            ]),
-          ],
         ],
       ),
     );
