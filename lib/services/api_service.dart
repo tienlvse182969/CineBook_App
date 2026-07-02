@@ -49,6 +49,20 @@ class ApiService {
     return userRole!;
   }
 
+  static Future<void> updateProfile({
+    required String fullName,
+    String? phone,
+  }) async {
+    final json = await _patchMap(
+      Uri.parse('$baseUrl/api/auth/me'),
+      {'full_name': fullName, 'phone': phone},
+    );
+    final userJson = json['user'];
+    if (userJson is Map<String, dynamic>) {
+      currentUser = UserProfile.fromJson(userJson);
+    }
+  }
+
   static Future<void> changePassword(
     String oldPassword,
     String newPassword,
@@ -352,6 +366,16 @@ class ApiService {
       if (decoded is Map && decoded['message'] != null) throw Exception(decoded['message']);
       throw Exception('HTTP ${response.statusCode}');
     }
+  }
+
+  static Future<Map<String, dynamic>> _patchMap(
+    Uri uri,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await http.patch(uri, headers: _headers, body: jsonEncode(body));
+    final json = _decode(response);
+    if (json is Map<String, dynamic>) return json;
+    throw Exception('Unexpected response from $uri');
   }
 
   static Future<void> _delete(Uri uri) async {

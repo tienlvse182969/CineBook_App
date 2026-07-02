@@ -5,6 +5,7 @@ import 'package:ve_xem_phim/models/booking_record.dart';
 import 'package:ve_xem_phim/screens/auth/login_screen.dart';
 import 'package:ve_xem_phim/screens/profile/edit_profile_screen.dart';
 import 'package:ve_xem_phim/screens/profile/my_tickets_screen.dart';
+import 'package:ve_xem_phim/screens/profile/privacy_screen.dart';
 import 'package:ve_xem_phim/services/api_service.dart';
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -262,7 +263,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () {},
+                            onTap: () {
+                              if (label == 'Quyền riêng tư') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+                                );
+                              }
+                            },
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                               child: Row(

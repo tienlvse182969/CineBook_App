@@ -112,6 +112,7 @@ class GlassInput extends StatefulWidget {
   final TextEditingController? controller;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final bool readOnly;
 
   const GlassInput({
     super.key,
@@ -122,6 +123,7 @@ class GlassInput extends StatefulWidget {
     this.controller,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.readOnly = false,
   });
 
   @override
@@ -156,7 +158,8 @@ class _GlassInputState extends State<GlassInput> {
               obscureText: _obscure,
               keyboardType: widget.keyboardType,
               validator: widget.validator,
-              style: const TextStyle(color: Colors.white),
+              readOnly: widget.readOnly,
+              style: TextStyle(color: widget.readOnly ? Colors.white54 : Colors.white),
               decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.28)),
