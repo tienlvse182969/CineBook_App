@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:ve_xem_phim/screens/admin/admin_home_screen.dart';
 import 'package:ve_xem_phim/screens/auth/login_screen.dart';
 import 'package:ve_xem_phim/screens/auth/register_screen.dart';
 import 'package:ve_xem_phim/screens/auth/forgot_password_screen.dart';
@@ -36,6 +37,7 @@ class MainApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/home': (context) => const HomeScreen(),
+        '/admin': (context) => const AdminHomeScreen(),
       },
     );
   }

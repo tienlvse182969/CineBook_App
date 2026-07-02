@@ -28,8 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isLoading = true);
     try {
-      await ApiService.login(_identifierController.text.trim(), _passwordController.text);
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      final role = await ApiService.login(_identifierController.text.trim(), _passwordController.text);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, role == 'ADMIN' ? '/admin' : '/home');
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
