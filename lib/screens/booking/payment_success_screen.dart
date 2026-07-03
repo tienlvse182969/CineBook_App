@@ -320,7 +320,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
           ),
           child: Column(
             children: [
-              // Mock QR grid
+              // QR code
               Container(
                 width: 120, height: 120,
                 padding: const EdgeInsets.all(10),
@@ -328,7 +328,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: CustomPaint(painter: _QrPainter()),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.asset('assets/qr/QRCode.jpg', fit: BoxFit.contain),
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -511,42 +514,4 @@ class _InfoCell extends StatelessWidget {
       ),
     );
   }
-}
-
-// Simple pixel-art QR mock
-class _QrPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF111111);
-    const grid = 10;
-    final cell = size.width / grid;
-
-    // A deterministic pattern that looks like a QR code
-    const pattern = [
-      [1,1,1,1,1,1,1,0,1,0],
-      [1,0,0,0,0,0,1,0,0,1],
-      [1,0,1,1,1,0,1,0,1,0],
-      [1,0,1,1,1,0,1,1,0,1],
-      [1,0,1,1,1,0,1,0,1,1],
-      [1,0,0,0,0,0,1,1,0,0],
-      [1,1,1,1,1,1,1,0,1,0],
-      [0,0,0,0,0,0,0,1,1,0],
-      [1,0,1,1,0,1,1,0,1,1],
-      [0,1,0,0,1,1,0,1,0,1],
-    ];
-
-    for (int r = 0; r < grid; r++) {
-      for (int c = 0; c < grid; c++) {
-        if (pattern[r][c] == 1) {
-          canvas.drawRect(
-            Rect.fromLTWH(c * cell + 1, r * cell + 1, cell - 2, cell - 2),
-            paint,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
 }
