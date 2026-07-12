@@ -9,6 +9,7 @@ class BookingSnackItem {
 
 class BookingRecord {
   final int id;
+  final int? movieId;
   final String movieTitle;
   final String? posterUrl;
   final Color color;
@@ -23,6 +24,7 @@ class BookingRecord {
 
   const BookingRecord({
     required this.id,
+    this.movieId,
     required this.movieTitle,
     this.posterUrl,
     required this.color,
@@ -90,6 +92,7 @@ class BookingRecord {
 
     return BookingRecord(
       id: (json['booking_id'] as num?)?.toInt() ?? 0,
+      movieId: (movieJson?['movie_id'] as num?)?.toInt(),
       movieTitle: movieJson?['title']?.toString() ?? 'Phim đã đặt',
       posterUrl: movieJson?['poster_url']?.toString(),
       color: color,
