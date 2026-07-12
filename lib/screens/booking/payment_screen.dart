@@ -23,9 +23,8 @@ class _PayMethod {
     required this.name,
     required this.subtitle,
     required this.color,
-    this.icon,
     this.logoAsset,
-  });
+  }) : icon = null;
 }
 
 final _payMethods = <_PayMethod>[

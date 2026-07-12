@@ -37,8 +37,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   static const _rowLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
   static const _vipRows = {'E', 'F', 'G'};
 
-  late List<DateTime> _dates;
+  static const int _weekPageBase = 500;
+
+  late DateTime _todayDate;
+  late DateTime _currentWeekMonday;
   late DateTime _selectedDate;
+  final PageController _weekPageController = PageController(initialPage: _weekPageBase);
   List<ShowtimeData> _allApiShowtimes = [];
   List<ShowtimeData> _showtimes = [];
   ShowtimeData? _selectedShowtime;
@@ -50,11 +54,35 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    final today = DateTime.now();
-    _dates = List.generate(7, (i) => DateTime(today.year, today.month, today.day + i));
-    _selectedDate = _dates[0];
+    final now = DateTime.now();
+    _todayDate = DateTime(now.year, now.month, now.day);
+    _currentWeekMonday = _todayDate.subtract(Duration(days: _todayDate.weekday - 1));
+    _selectedDate = _todayDate;
     _rows = _buildRows([]);
     _loadApiShowtimes();
+  }
+
+  @override
+  void dispose() {
+    _weekPageController.dispose();
+    super.dispose();
+  }
+
+  List<DateTime> _datesForWeekPage(int page) {
+    final monday = _currentWeekMonday.add(Duration(days: (page - _weekPageBase) * 7));
+    return List.generate(7, (i) => monday.add(Duration(days: i)));
+  }
+
+  void _jumpToWeekOfDate(DateTime date) {
+    final monday = date.subtract(Duration(days: date.weekday - 1));
+    final page = _weekPageBase + monday.difference(_currentWeekMonday).inDays ~/ 7;
+    if (_weekPageController.hasClients) {
+      _weekPageController.jumpToPage(page);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_weekPageController.hasClients) _weekPageController.jumpToPage(page);
+      });
+    }
   }
 
   // ── Seat generation ─────────────────────────────────────────
@@ -152,12 +180,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           .toList();
       setState(() {
         _allApiShowtimes = times;
-        _dates = dates.isEmpty ? _dates : dates;
         _selectedDate = firstDate;
         _showtimes = firstShowtimes;
         _selectedShowtime = firstShowtimes.isEmpty ? null : firstShowtimes[0];
         _loadingShowtimes = false;
       });
+      _jumpToWeekOfDate(firstDate);
       if (_selectedShowtime != null) await _loadSeatsForSelected();
     } catch (_) {
       if (mounted) setState(() { _loadingShowtimes = false; _hasError = true; });
@@ -372,6 +400,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
+  static String _pad2(int n) => n.toString().padLeft(2, '0');
+
+  static String _weekRangeLabel(DateTime start, DateTime end) {
+    final startStr = '${_pad2(start.day)}/${_pad2(start.month)}';
+    final endStr = '${_pad2(end.day)}/${_pad2(end.month)}/${end.year}';
+    return '$startStr - $endStr';
+  }
+
   static Color _dotColor(double fraction) {
     if (fraction > 0.65) return const Color(0xFFFF5252);
     if (fraction > 0.38) return const Color(0xFFFFAB40);
@@ -512,76 +548,116 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   // ── Date picker ─────────────────────────────────────────────
 
   Widget _buildDatePicker() {
-    final today = _dates[0];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: _dates.map((date) {
-          final isSelected = _sameDay(date, _selectedDate);
-          final isToday = _sameDay(date, today);
-          final times = _allApiShowtimes.where((t) => _sameDay(t.startTime ?? date, date)).toList();
-          final avgFraction = times.isEmpty
-              ? 0.2
-              : times.map((t) => t.bookedFraction).fold(0.0, (a, b) => a + b) / times.length;
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: GestureDetector(
-                onTap: () => _selectDate(date),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFE50914) : Colors.white.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFFE50914)
-                          : isToday
-                              ? Colors.white.withValues(alpha: 0.35)
-                              : Colors.white.withValues(alpha: 0.09),
-                      width: isToday && !isSelected ? 1.5 : 1.0,
-                    ),
-                    boxShadow: isSelected
-                        ? [BoxShadow(color: const Color(0xFFE50914).withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 1)]
-                        : null,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        isToday ? 'Hôm\nnay' : _weekdayLabel(date.weekday),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.45),
-                          fontSize: isToday ? 9 : 10,
-                          fontWeight: FontWeight.w500,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${date.day}',
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, height: 1),
-                      ),
-                      const SizedBox(height: 5),
-                      Container(
-                        width: 5, height: 5,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected ? Colors.white.withValues(alpha: 0.65) : _dotColor(avgFraction),
-                        ),
-                      ),
-                    ],
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+          child: AnimatedBuilder(
+            animation: _weekPageController,
+            builder: (context, _) {
+              final page = _weekPageController.hasClients && _weekPageController.page != null
+                  ? _weekPageController.page!.round()
+                  : _weekPageBase;
+              final dates = _datesForWeekPage(page);
+              return Row(children: [
+                Icon(LucideIcons.calendarDays, size: 12, color: Colors.white.withValues(alpha: 0.35)),
+                const SizedBox(width: 6),
+                Text(
+                  _weekRangeLabel(dates.first, dates.last),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
+                const Spacer(),
+                Icon(LucideIcons.chevronLeft, size: 12, color: Colors.white.withValues(alpha: 0.25)),
+                const SizedBox(width: 2),
+                Text('Vuốt xem tuần khác', style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 10)),
+                const SizedBox(width: 2),
+                Icon(LucideIcons.chevronRight, size: 12, color: Colors.white.withValues(alpha: 0.25)),
+              ]);
+            },
+          ),
+        ),
+        SizedBox(
+          height: 88,
+          child: PageView.builder(
+            controller: _weekPageController,
+            onPageChanged: (page) => _selectDate(_datesForWeekPage(page)[0]),
+            itemBuilder: (context, page) {
+              final dates = _datesForWeekPage(page);
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  children: dates.map((date) {
+                    final isSelected = _sameDay(date, _selectedDate);
+                    final isToday = _sameDay(date, _todayDate);
+                    final times = _allApiShowtimes.where((t) => _sameDay(t.startTime ?? date, date)).toList();
+                    final avgFraction = times.isEmpty
+                        ? 0.2
+                        : times.map((t) => t.bookedFraction).fold(0.0, (a, b) => a + b) / times.length;
+
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: GestureDetector(
+                          onTap: () => _selectDate(date),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFFE50914) : Colors.white.withValues(alpha: 0.07),
+                              borderRadius: BorderRadius.circular(13),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFFE50914)
+                                    : isToday
+                                        ? Colors.white.withValues(alpha: 0.35)
+                                        : Colors.white.withValues(alpha: 0.09),
+                                width: isToday && !isSelected ? 1.5 : 1.0,
+                              ),
+                              boxShadow: isSelected
+                                  ? [BoxShadow(color: const Color(0xFFE50914).withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 1)]
+                                  : null,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  isToday ? 'H.nay' : _weekdayLabel(date.weekday),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.45),
+                                    fontSize: isToday ? 9 : 10,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${date.day}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, height: 1),
+                                ),
+                                const SizedBox(height: 5),
+                                Container(
+                                  width: 5, height: 5,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isSelected ? Colors.white.withValues(alpha: 0.65) : _dotColor(avgFraction),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
