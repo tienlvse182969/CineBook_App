@@ -21,11 +21,33 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   ReviewSummary? _reviewSummary;
   List<MovieReview> _reviews = [];
   bool _loadingReviews = true;
+  bool _hasPurchasedTicket = false;
+  bool _loadingPurchaseStatus = true;
 
   @override
   void initState() {
     super.initState();
     _loadReviews();
+    _loadPurchaseStatus();
+  }
+
+  Future<void> _loadPurchaseStatus() async {
+    if (ApiService.token == null || movie.id == null) {
+      if (mounted) setState(() => _loadingPurchaseStatus = false);
+      return;
+    }
+    try {
+      final bookings = await ApiService.getMyBookings();
+      if (!mounted) return;
+      setState(() {
+        _hasPurchasedTicket = bookings.any(
+          (b) => b.movieId == movie.id && b.bookingStatus == 'CONFIRMED',
+        );
+        _loadingPurchaseStatus = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingPurchaseStatus = false);
+    }
   }
 
   Future<void> _loadReviews() async {
@@ -635,38 +657,63 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 ),
               ],
               const Spacer(),
-              if (ApiService.token != null && movie.id != null)
-                GestureDetector(
-                  onTap: () => _showReviewDialog(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE50914).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFFE50914).withValues(alpha: 0.35),
+              if (ApiService.token != null &&
+                  movie.id != null &&
+                  !_loadingPurchaseStatus) ...[
+                if (_hasPurchasedTicket)
+                  GestureDetector(
+                    onTap: () => _showReviewDialog(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE50914).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFFE50914).withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(LucideIcons.pencil, size: 11, color: Color(0xFFE50914)),
+                          SizedBox(width: 5),
+                          Text(
+                            'Viết đánh giá',
+                            style: TextStyle(
+                              color: Color(0xFFE50914),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                  )
+                else
+                  Flexible(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(LucideIcons.pencil, size: 11, color: Color(0xFFE50914)),
-                        SizedBox(width: 5),
-                        Text(
-                          'Viết đánh giá',
-                          style: TextStyle(
-                            color: Color(0xFFE50914),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      children: [
+                        Icon(LucideIcons.lock, size: 11, color: Colors.white.withValues(alpha: 0.25)),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            'Mua vé để đánh giá',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
+              ],
             ],
           ),
           if (_loadingReviews) ...[
