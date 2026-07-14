@@ -87,7 +87,7 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen>
   }
 }
 
-class _MoviesTab extends StatelessWidget {
+class _MoviesTab extends StatefulWidget {
   final List<Map<String, dynamic>> movies;
   final bool isLoading;
   final Future<void> Function() onRefresh;
@@ -95,12 +95,27 @@ class _MoviesTab extends StatelessWidget {
   const _MoviesTab({required this.movies, required this.isLoading, required this.onRefresh});
 
   @override
+  State<_MoviesTab> createState() => _MoviesTabState();
+}
+
+class _MoviesTabState extends State<_MoviesTab> {
+  String _searchQuery = '';
+  String _filterStatus = 'ALL';
+
+  @override
   Widget build(BuildContext context) {
+    final filteredMovies = widget.movies.where((m) {
+      final matchesSearch = _searchQuery.isEmpty || 
+          (m['title']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+      final matchesStatus = _filterStatus == 'ALL' || m['status'] == _filterStatus;
+      return matchesSearch && matchesStatus;
+    }).toList();
+
     return RefreshIndicator(
       color: const Color(0xFFE50914),
       backgroundColor: const Color(0xFF161B22),
-      onRefresh: onRefresh,
-      child: isLoading
+      onRefresh: widget.onRefresh,
+      child: widget.isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)))
           : Column(
               children: [
@@ -109,26 +124,58 @@ class _MoviesTab extends StatelessWidget {
                   child: Row(
                     children: [
                       Text(
-                        '${movies.length} phim',
+                        '${filteredMovies.length} phim',
                         style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
                       ),
                       const Spacer(),
                       _AddButton(
                         label: 'Thêm phim',
-                        onTap: () => _showMovieForm(context, null, onRefresh),
+                        onTap: () => _showMovieForm(context, null, widget.onRefresh),
                       ),
                     ],
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm tên phim...',
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
+                      prefixIcon: Icon(LucideIcons.search, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Tất cả', 'ALL'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Đang chiếu', 'NOW_SHOWING'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Sắp chiếu', 'UPCOMING'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Kết thúc', 'ENDED'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: movies.length,
+                    itemCount: filteredMovies.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, i) => _MovieRow(
-                      movie: movies[i],
-                      onEdit: () => _showMovieForm(context, movies[i], onRefresh),
-                      onDelete: () => _confirmDelete(context, movies[i], onRefresh),
+                      movie: filteredMovies[i],
+                      onEdit: () => _showMovieForm(context, filteredMovies[i], widget.onRefresh),
+                      onDelete: () => _confirmDelete(context, filteredMovies[i], widget.onRefresh),
                     ),
                   ),
                 ),
@@ -137,11 +184,36 @@ class _MoviesTab extends StatelessWidget {
     );
   }
 
+  Widget _buildFilterChip(String label, String value) {
+    final selected = _filterStatus == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filterStatus = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFE50914).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? const Color(0xFFE50914).withValues(alpha: 0.5) : Colors.transparent),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? const Color(0xFFE50914) : Colors.white54,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
   static void _showMovieForm(BuildContext context, Map<String, dynamic>? movie, Future<void> Function() refresh) {
     final titleCtrl = TextEditingController(text: movie?['title']?.toString() ?? '');
     final genreCtrl = TextEditingController(text: movie?['genre']?.toString() ?? '');
     final directorCtrl = TextEditingController(text: movie?['director']?.toString() ?? '');
     final descCtrl = TextEditingController(text: movie?['description']?.toString() ?? '');
+    final durationCtrl = TextEditingController(text: movie?['duration_minutes']?.toString() ?? '');
+    final ageCtrl = TextEditingController(text: movie?['age_restriction']?.toString() ?? '');
     String status = movie?['status']?.toString() ?? 'NOW_SHOWING';
     bool saving = false;
 
@@ -173,6 +245,14 @@ class _MoviesTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _FormField(label: 'Tên phim *', controller: titleCtrl),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(child: _FormField(label: 'Thời lượng (phút)', controller: durationCtrl)),
+                    const SizedBox(width: 10),
+                    Expanded(child: _FormField(label: 'Độ tuổi (0 = mọi lứa tuổi)', controller: ageCtrl)),
+                  ],
+                ),
                 const SizedBox(height: 10),
                 _FormField(label: 'Thể loại', controller: genreCtrl),
                 const SizedBox(height: 10),
@@ -214,7 +294,15 @@ class _MoviesTab extends StatelessWidget {
                       if (titleCtrl.text.trim().isEmpty) return;
                       setModal(() => saving = true);
                       try {
-                        final body = {'title': titleCtrl.text.trim(), 'genre': genreCtrl.text.trim(), 'director': directorCtrl.text.trim(), 'description': descCtrl.text.trim(), 'status': status};
+                        final body = {
+                          'title': titleCtrl.text.trim(),
+                          'genre': genreCtrl.text.trim(),
+                          'director': directorCtrl.text.trim(),
+                          'description': descCtrl.text.trim(),
+                          'status': status,
+                          if (durationCtrl.text.isNotEmpty) 'duration_minutes': int.tryParse(durationCtrl.text.trim()),
+                          if (ageCtrl.text.isNotEmpty) 'age_restriction': int.tryParse(ageCtrl.text.trim()) ?? 0,
+                        };
                         if (movie == null) {
                           body['api_movie_id'] = 'manual-${DateTime.now().millisecondsSinceEpoch}';
                           await ApiService.createMovie(body);
