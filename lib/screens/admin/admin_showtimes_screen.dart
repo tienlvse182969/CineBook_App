@@ -24,7 +24,9 @@ class AdminShowtimesScreen extends StatefulWidget {
 class _AdminShowtimesScreenState extends State<AdminShowtimesScreen> {
   List<Map<String, dynamic>> _showtimes = [];
   List<Map<String, dynamic>> _movies = [];
+  List<Map<String, dynamic>> _rooms = [];
   bool _isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -38,11 +40,13 @@ class _AdminShowtimesScreenState extends State<AdminShowtimesScreen> {
       final results = await Future.wait([
         ApiService.getAllShowtimes(),
         ApiService.getMovies().then((list) => list.map((m) => {'movie_id': m.id, 'title': m.title}).toList()),
+        ApiService.getAdminRooms(),
       ]);
       if (mounted) {
         setState(() {
           _showtimes = results[0] as List<Map<String, dynamic>>;
           _movies = results[1] as List<Map<String, dynamic>>;
+          _rooms = results[2] as List<Map<String, dynamic>>;
           _isLoading = false;
         });
       }
@@ -53,6 +57,16 @@ class _AdminShowtimesScreenState extends State<AdminShowtimesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredShowtimes = _showtimes.where((st) {
+      if (_searchQuery.isEmpty) return true;
+      final movie = st['Movie'] as Map? ?? {};
+      final room = st['Room'] as Map? ?? {};
+      final title = (movie['title']?.toString() ?? '').toLowerCase();
+      final roomName = (room['name']?.toString() ?? room['room_name']?.toString() ?? '').toLowerCase();
+      final q = _searchQuery.toLowerCase();
+      return title.contains(q) || roomName.contains(q);
+    }).toList();
+
     return RefreshIndicator(
       color: const Color(0xFFE50914),
       backgroundColor: const Color(0xFF161B22),
@@ -66,7 +80,7 @@ class _AdminShowtimesScreenState extends State<AdminShowtimesScreen> {
                   child: Row(
                     children: [
                       Text(
-                        '${_showtimes.length} lịch chiếu',
+                        '${filteredShowtimes.length} lịch chiếu',
                         style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
                       ),
                       const Spacer(),
@@ -77,16 +91,32 @@ class _AdminShowtimesScreenState extends State<AdminShowtimesScreen> {
                     ],
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                  child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm theo tên phim hoặc phòng chiếu...',
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
+                      prefixIcon: Icon(LucideIcons.search, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: _showtimes.length,
+                    itemCount: filteredShowtimes.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, i) => _ShowtimeRow(
-                      showtime: _showtimes[i],
-                      onEdit: () => _showForm(context, _showtimes[i]),
-                      onDelete: () => _confirmDelete(context, _showtimes[i]),
-                      onCancel: () => _confirmCancel(context, _showtimes[i]),
+                      showtime: filteredShowtimes[i],
+                      onEdit: () => _showForm(context, filteredShowtimes[i]),
+                      onDelete: () => _confirmDelete(context, filteredShowtimes[i]),
+                      onCancel: () => _confirmCancel(context, filteredShowtimes[i]),
                     ),
                   ),
                 ),
@@ -97,8 +127,11 @@ class _AdminShowtimesScreenState extends State<AdminShowtimesScreen> {
 
   void _showForm(BuildContext context, Map<String, dynamic>? st) {
     int? selectedMovieId = st != null ? _nInt(st['movie_id']) : null;
+    int? selectedRoomId = st != null ? _nInt(st['room_id']) : null;
     final dateCtrl = TextEditingController(text: st?['start_time']?.toString().substring(0, 10) ?? '');
     final timeCtrl = TextEditingController(text: st?['start_time']?.toString().length != null && st!['start_time'].toString().length >= 16 ? st['start_time'].toString().substring(11, 16) : '');
+    final endDateCtrl = TextEditingController(text: st?['end_time']?.toString().substring(0, 10) ?? '');
+    final endTimeCtrl = TextEditingController(text: st?['end_time']?.toString().length != null && st!['end_time'].toString().length >= 16 ? st['end_time'].toString().substring(11, 16) : '');
     final priceCtrl = TextEditingController(text: st?['price']?.toString() ?? '');
     bool saving = false;
 
@@ -107,99 +140,172 @@ class _AdminShowtimesScreenState extends State<AdminShowtimesScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF161B22),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  st == null ? 'Thêm lịch chiếu' : 'Sửa lịch chiếu',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                Text('Phim *', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
-                const SizedBox(height: 6),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: DropdownButton<int>(
-                    value: selectedMovieId,
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF1E2530),
-                    underline: const SizedBox(),
-                    hint: Text('Chọn phim', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    items: _movies.map((m) => DropdownMenuItem<int>(
-                      value: _nInt(m['movie_id']),
-                      child: Text(m['title']?.toString() ?? '', overflow: TextOverflow.ellipsis),
-                    )).toList(),
-                    onChanged: (v) => setModal(() => selectedMovieId = v),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _FormField(label: 'Ngày chiếu (YYYY-MM-DD) *', controller: dateCtrl, hint: '2025-01-01'),
-                const SizedBox(height: 10),
-                _FormField(label: 'Giờ chiếu (HH:mm) *', controller: timeCtrl, hint: '19:30'),
-                const SizedBox(height: 10),
-                _FormField(label: 'Giá vé (VNĐ)', controller: priceCtrl, hint: '100000'),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: saving ? null : () async {
-                      if (selectedMovieId == null || dateCtrl.text.isEmpty || timeCtrl.text.isEmpty) return;
-                      setModal(() => saving = true);
-                      try {
-                        final startTime = '${dateCtrl.text.trim()}T${timeCtrl.text.trim()}:00';
-                        final body = {
-                          'movie_id': selectedMovieId,
-                          'start_time': startTime,
-                          if (priceCtrl.text.isNotEmpty) 'price': double.tryParse(priceCtrl.text.trim()) ?? 0,
-                        };
-                        if (st == null) {
-                          await ApiService.createShowtime(body);
-                        } else {
-                          await ApiService.updateShowtime(_nInt(st['showtime_id']), body);
-                        }
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        await _load();
-                      } catch (e) {
-                        if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: const Color(0xFFE50914)));
-                        setModal(() => saving = false);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE50914),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: saving
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Lưu', style: TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                ),
-              ],
+        builder: (ctx, setModal) {
+          
+          List<Map<String, dynamic>> getAvailableRooms() {
+            if (dateCtrl.text.isEmpty || timeCtrl.text.isEmpty || endDateCtrl.text.isEmpty || endTimeCtrl.text.isEmpty) {
+              return _rooms;
+            }
+            try {
+              final start = DateTime.parse('${dateCtrl.text.trim()} ${timeCtrl.text.trim()}:00');
+              final end = DateTime.parse('${endDateCtrl.text.trim()} ${endTimeCtrl.text.trim()}:00');
+              
+              return _rooms.where((r) {
+                final roomId = _nInt(r['room_id']);
+                final hasOverlap = _showtimes.any((stItem) {
+                  if (_nInt(stItem['showtime_id']) == _nInt(st?['showtime_id'])) return false;
+                  if (_nInt(stItem['room_id']) != roomId) return false;
+                  
+                  final stStart = DateTime.parse(stItem['start_time'].toString().replaceAll('T', ' '));
+                  final stEnd = DateTime.parse(stItem['end_time'].toString().replaceAll('T', ' '));
+                  
+                  return start.isBefore(stEnd) && end.isAfter(stStart);
+                });
+                return !hasOverlap;
+              }).toList();
+            } catch (e) {
+              return _rooms;
+            }
+          }
+
+          final availableRooms = getAvailableRooms();
+          if (selectedRoomId != null && !availableRooms.any((r) => _nInt(r['room_id']) == selectedRoomId)) {
+            selectedRoomId = null;
+          }
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF161B22),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-          ),
-        ),
+            padding: EdgeInsets.only(
+              left: 20, right: 20, top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    st == null ? 'Thêm lịch chiếu' : 'Sửa lịch chiếu',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Phim *', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: DropdownButton<int>(
+                      value: selectedMovieId,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1E2530),
+                      underline: const SizedBox(),
+                      hint: Text('Chọn phim', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      items: _movies.map((m) => DropdownMenuItem<int>(
+                        value: _nInt(m['movie_id']),
+                        child: Text(m['title']?.toString() ?? '', overflow: TextOverflow.ellipsis),
+                      )).toList(),
+                      onChanged: (v) => setModal(() => selectedMovieId = v),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: _FormField(label: 'Ngày bắt đầu *', controller: dateCtrl, hint: 'YYYY-MM-DD', onChanged: (_) => setModal(() {}))),
+                      const SizedBox(width: 10),
+                      Expanded(child: _FormField(label: 'Giờ bắt đầu *', controller: timeCtrl, hint: 'HH:mm', onChanged: (_) => setModal(() {}))),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: _FormField(label: 'Ngày kết thúc *', controller: endDateCtrl, hint: 'YYYY-MM-DD', onChanged: (_) => setModal(() {}))),
+                      const SizedBox(width: 10),
+                      Expanded(child: _FormField(label: 'Giờ kết thúc *', controller: endTimeCtrl, hint: 'HH:mm', onChanged: (_) => setModal(() {}))),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text('Phòng chiếu * (chỉ hiển thị phòng trống)', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: DropdownButton<int>(
+                      value: selectedRoomId,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1E2530),
+                      underline: const SizedBox(),
+                      hint: Text('Chọn phòng chiếu', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      items: availableRooms.map((r) => DropdownMenuItem<int>(
+                        value: _nInt(r['room_id']),
+                        child: Text(r['name']?.toString() ?? '', overflow: TextOverflow.ellipsis),
+                      )).toList(),
+                      onChanged: (v) => setModal(() => selectedRoomId = v),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _FormField(label: 'Giá vé (VNĐ) *', controller: priceCtrl, hint: '100000'),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: saving ? null : () async {
+                        if (selectedMovieId == null || selectedRoomId == null || dateCtrl.text.isEmpty || timeCtrl.text.isEmpty || endDateCtrl.text.isEmpty || endTimeCtrl.text.isEmpty || priceCtrl.text.isEmpty) return;
+                        setModal(() => saving = true);
+                        try {
+                          final startTime = '${dateCtrl.text.trim()}T${timeCtrl.text.trim()}:00';
+                          final endTime = '${endDateCtrl.text.trim()}T${endTimeCtrl.text.trim()}:00';
+                          final body = {
+                            'movie_id': selectedMovieId,
+                            'room_id': selectedRoomId,
+                            'start_time': startTime,
+                            'end_time': endTime,
+                            if (priceCtrl.text.isNotEmpty) 'price': double.tryParse(priceCtrl.text.trim()) ?? 0,
+                          };
+                          if (st == null) {
+                            await ApiService.createShowtime(body);
+                          } else {
+                            await ApiService.updateShowtime(_nInt(st['showtime_id']), body);
+                          }
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          await _load();
+                        } catch (e) {
+                          if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: const Color(0xFFE50914)));
+                          setModal(() => saving = false);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE50914),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: saving
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Lưu', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -338,11 +444,11 @@ class _ShowtimeRow extends StatelessWidget {
                     const Icon(LucideIcons.clock, size: 11, color: Color(0xFF8B949E)),
                     const SizedBox(width: 4),
                     Text(_formattedTime, style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11)),
-                    if (room['room_name'] != null) ...[
+                    if (room['name'] != null || room['room_name'] != null) ...[
                       const SizedBox(width: 8),
                       const Icon(LucideIcons.tv, size: 11, color: Color(0xFF8B949E)),
                       const SizedBox(width: 4),
-                      Text(room['room_name'].toString(), style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11)),
+                      Text((room['name'] ?? room['room_name']).toString(), style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11)),
                     ],
                   ],
                 ),
@@ -410,7 +516,8 @@ class _FormField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final String? hint;
-  const _FormField({required this.label, required this.controller, this.hint});
+  final ValueChanged<String>? onChanged;
+  const _FormField({required this.label, required this.controller, this.hint, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -421,6 +528,7 @@ class _FormField extends StatelessWidget {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
+          onChanged: onChanged,
           style: const TextStyle(color: Colors.white, fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
@@ -437,3 +545,4 @@ class _FormField extends StatelessWidget {
     );
   }
 }
+

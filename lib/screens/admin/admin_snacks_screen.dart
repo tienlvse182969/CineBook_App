@@ -18,6 +18,9 @@ class AdminSnacksScreen extends StatefulWidget {
 class _AdminSnacksScreenState extends State<AdminSnacksScreen> {
   List<Map<String, dynamic>> _snacks = [];
   bool _isLoading = true;
+  String _searchQuery = '';
+  String _filterType = 'ALL';
+  String _filterStatus = 'ALL';
 
   @override
   void initState() {
@@ -223,6 +226,14 @@ class _AdminSnacksScreenState extends State<AdminSnacksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredSnacks = _snacks.where((s) {
+      final matchesSearch = _searchQuery.isEmpty || 
+          (s['name']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+      final matchesType = _filterType == 'ALL' || s['type'] == _filterType;
+      final matchesStatus = _filterStatus == 'ALL' || s['status'] == _filterStatus;
+      return matchesSearch && matchesType && matchesStatus;
+    }).toList();
+
     return RefreshIndicator(
       color: const Color(0xFFE50914),
       backgroundColor: const Color(0xFF161B22),
@@ -235,27 +246,113 @@ class _AdminSnacksScreenState extends State<AdminSnacksScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                   child: Row(
                     children: [
-                      Text('${_snacks.length} mặt hàng', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
+                      Text('${filteredSnacks.length} mặt hàng', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
                       const Spacer(),
                       _AddBtn(onTap: () => _showForm(context, null)),
                     ],
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm đồ ăn, thức uống...',
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
+                      prefixIcon: Icon(LucideIcons.search, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      _buildTypeChip('Tất cả', 'ALL'),
+                      const SizedBox(width: 6),
+                      _buildTypeChip('Bắp rang', 'POPCORN'),
+                      const SizedBox(width: 6),
+                      _buildTypeChip('Nước', 'DRINK'),
+                      const SizedBox(width: 6),
+                      _buildTypeChip('Combo', 'COMBO'),
+                      const SizedBox(width: 6),
+                      _buildTypeChip('Đồ ăn', 'FOOD'),
+                      const SizedBox(width: 12),
+                      Container(width: 1, height: 20, color: Colors.white24),
+                      const SizedBox(width: 12),
+                      _buildStatusChip('Có bán', 'AVAILABLE'),
+                      const SizedBox(width: 6),
+                      _buildStatusChip('Ngừng', 'UNAVAILABLE'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: _snacks.length,
+                    itemCount: filteredSnacks.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, i) => _SnackRow(
-                      snack: _snacks[i],
-                      onEdit: () => _showForm(context, _snacks[i]),
-                      onDelete: () => _deleteSnack(_snacks[i]),
-                      onToggle: () => _toggleStatus(_snacks[i]),
+                      snack: filteredSnacks[i],
+                      onEdit: () => _showForm(context, filteredSnacks[i]),
+                      onDelete: () => _deleteSnack(filteredSnacks[i]),
+                      onToggle: () => _toggleStatus(filteredSnacks[i]),
                     ),
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildTypeChip(String label, String value) {
+    final selected = _filterType == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filterType = _filterType == value ? 'ALL' : value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF3B82F6).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? const Color(0xFF3B82F6).withValues(alpha: 0.5) : Colors.transparent),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? const Color(0xFF3B82F6) : Colors.white54,
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String label, String value) {
+    final selected = _filterStatus == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filterStatus = _filterStatus == value ? 'ALL' : value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF22C55E).withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? const Color(0xFF22C55E).withValues(alpha: 0.5) : Colors.transparent),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? const Color(0xFF22C55E) : Colors.white54,
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 }
